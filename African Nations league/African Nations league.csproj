@@ -7,8 +7,4 @@
     <RootNamespace>African_Nations_league</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\Videos\" />
-  </ItemGroup>
-
 </Project>
