@@ -8,5 +8,9 @@ namespace African_Nations_league.Controllers
         {
             return View();
         }
+        public IActionResult Loading2()
+        {
+            return View();
+        }
     }
 }

@@ -17,6 +17,59 @@ html {
   min-height: 100%;
 }
 
-body {
-  margin-bottom: 60px;
+
+
+
+/*CSS fOR NAVIGATION*/
+
+
+/* Custom navbar background */
+.custom-navbar {
+    background-color: #126035; /* CAF COLOR GREEN  */
 }
+
+/* Navbar brand text */
+.navbar-brand {
+    color: white !important;
+    display: flex;
+    align-items: center; /* vertical align with logo */
+}
+
+/* Nav links */
+.navbar-nav .nav-link {
+    color: white !important;
+    transition: color 0.3s !important;
+}
+
+    /* Hover effect */
+    .navbar-nav .nav-link:hover {
+        color: #E0B700 !important; /* on hover */
+    }
+
+    /* Active link style */
+    .navbar-nav .nav-link.active {
+        font-weight: bold !important;
+        color: #F8E825 !important; /* on active */
+    }
+
+
+/*    CSS form footer */
+
+.custom-footer {
+    background-color: #126035; /*CAF GREEN COLOR  */
+}
+
+    .custom-footer h5 {
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+
+    .custom-footer .footer-link {
+        color: white;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+        .custom-footer .footer-link:hover {
+            color: #E0B700; /* on hover */
+        }
