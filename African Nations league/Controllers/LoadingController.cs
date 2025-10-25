@@ -4,7 +4,7 @@ namespace African_Nations_league.Controllers
 {
     public class LoadingController : Controller
     {
-        public IActionResult Index()
+        public IActionResult Landing()
         {
             return View();
         }
