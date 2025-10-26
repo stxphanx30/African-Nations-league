@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace African_Nations_league.Services
@@ -10,91 +11,136 @@ namespace African_Nations_league.Services
     public class SportMonksService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey = "89BDoNcyoPL6UPCi3nEtEj87PPl0kiqrY1YrmYOlXhsfVZxo8g26xFJNzEJy";
+        private readonly string _apiKey;
 
-        public SportMonksService(HttpClient httpClient)
+        public SportMonksService(HttpClient httpClient, Microsoft.Extensions.Configuration.IConfiguration config)
         {
             _httpClient = httpClient;
+            _apiKey = config["SPORTMONKS_API_KEY"];
         }
 
-        // Récupère les joueurs d'une équipe par TeamId
         public async Task<List<Players>> GetPlayersByTeamIdAsync(int teamId)
         {
-            var response = await _httpClient.GetFromJsonAsync<SportMonksPlayerResponse>(
-                $"https://api.sportmonks.com/v3/football/squads/teams/{teamId}?api_token={_apiKey}&include=player;position;detailedPosition"
-            );
+            var url = $"https://api.sportmonks.com/v3/football/squads/teams/{teamId}?api_token={_apiKey}&include=team;player;position;detailedPosition;player.statistics.details.type";
+            var response = await _httpClient.GetFromJsonAsync<SportMonksPlayerResponse>(url);
 
             var players = new List<Players>();
 
             if (response?.Data != null)
             {
-                foreach (var p in response.Data)
+                foreach (var s in response.Data)
                 {
+                    var p = s;
                     var positionName = p.Position?.Name ?? "Unknown";
-                    var teamName = p.Teams?.TeamName ?? "Unknown Team";
-                    var teamFlag = p.Teams?.FlagUrl ?? "";
+                    var detailed = p.Detailedposition?.Name ?? positionName;
+                    var teamName = p.Team?.Name ?? "Unknown Team";
+                    var teamFlag = p.Team?.ImagePath ?? "";
+
+                    // try to extract rating from provided statistics if present (scale 1-10)
+                    int rating = 0;
+                    if (p.PlayerStatistics != null)
+                    {
+                        // find statistic with type id that represent rating (e.g. type_id == 118 in ton exemple)
+                        foreach (var stat in p.PlayerStatistics)
+                        {
+                            if (stat?.TypeId == 118 && stat.Value?.Average != null)
+                            {
+                                // convert 1-10 -> 100 scale
+                                rating = (int)Math.Round((stat.Value.Average.Value / 10.0) * 100);
+                                break;
+                            }
+                        }
+                    }
+
+                    // fallback to generated rating if not found
+                    if (rating == 0)
+                        rating = Players.GenerateRating(positionName);
+
                     players.Add(new Players
                     {
-                        PlayerName = p.Player.display_name ?? "Unknown",
+                        PlayerName = p.Player?.DisplayName ?? p.Player?.Name ?? "Unknown",
                         Position = positionName,
-                        DetailedPosition = p.Detailedposition?.Name ?? positionName,
-                        Rating = Players.GenerateRating(positionName),
-                        ImagePath = p.Player.ImagePath ?? "",
+                        DetailedPosition = detailed,
+                        Rating = rating,
+                        ImagePath = p.Player?.ImagePath ?? "",
                         TeamName = teamName,
                         TeamFlag = teamFlag
                     });
                 }
             }
 
-            // Limiter à 23 joueurs pour la sélection type
             return players.Count > 23 ? players.GetRange(0, 23) : players;
         }
 
-        // Génère un rating aléatoire selon la position
-        private int GenerateRating(string position)
-        {
-            Random rnd = new Random();
-            return position?.ToLower() switch
-            {
-                "attacker" => rnd.Next(70, 96),
-                "midfielder" => rnd.Next(65, 91),
-                "defender" => rnd.Next(60, 86),
-                "goalkeeper" => rnd.Next(65, 91),
-                _ => rnd.Next(60, 91)
-            };
-        }
-
-        // Classes pour désérialisation JSON
+        // --- DTOs minimal pour JSON mapping (on mappe que ce dont on a besoin) ---
         private class SportMonksPlayerResponse
         {
+            [JsonPropertyName("data")]
             public List<SquadPlayer> Data { get; set; }
         }
 
         private class SquadPlayer
         {
-            public SportMonksPlayer Player { get; set; }
-            public Position Position { get; set; }
-            public DetailedPosition Detailedposition { get; set; }
-            public Teams Teams { get; set; }
+            [JsonPropertyName("player")]
+            public SMPlayer Player { get; set; }
+
+            [JsonPropertyName("position")]
+            public SMPosition Position { get; set; }
+
+            [JsonPropertyName("detailedposition")]
+            public SMDetailedPosition Detailedposition { get; set; }
+
+            [JsonPropertyName("team")]
+            public SMTeam Team { get; set; }
+
+            // some endpoints include statistics nested under player -> we support player.statistics.details
+            [JsonPropertyName("player_statistics")]
+            public List<PlayerStatistic> PlayerStatistics { get; set; }
         }
 
-        private class SportMonksPlayer
+        private class SMPlayer
         {
-            public string FullName { get; set; }
-            public string Firstname { get; set; }
-            public string Lastname { get; set; }
-            public string display_name { get; set; }
-            public string ImagePath { get; set; }
+            [JsonPropertyName("id")] public int Id { get; set; }
+            [JsonPropertyName("display_name")] public string DisplayName { get; set; }
+            [JsonPropertyName("name")] public string Name { get; set; }
+            [JsonPropertyName("image_path")] public string ImagePath { get; set; }
+            // other fields omitted
         }
 
-        private class Position
+        private class SMPosition
         {
-            public string Name { get; set; }
+            [JsonPropertyName("name")] public string Name { get; set; }
         }
 
-        private class DetailedPosition
+        private class SMDetailedPosition
         {
-            public string Name { get; set; }
+            [JsonPropertyName("name")] public string Name { get; set; }
+        }
+
+        private class SMTeam
+        {
+            [JsonPropertyName("name")] public string Name { get; set; }
+            [JsonPropertyName("image_path")] public string ImagePath { get; set; }
+        }
+
+        // minimal structure for stat value
+        private class PlayerStatistic
+        {
+            [JsonPropertyName("type_id")]
+            public int TypeId { get; set; }
+
+            [JsonPropertyName("value")]
+            public StatValue Value { get; set; }
+        }
+
+        private class StatValue
+        {
+            [JsonPropertyName("average")]
+            public double? Average { get; set; }
+            [JsonPropertyName("highest")]
+            public double? Highest { get; set; }
+            [JsonPropertyName("lowest")]
+            public double? Lowest { get; set; }
         }
     }
 }

@@ -1,6 +1,6 @@
-﻿using MongoDB.Driver;
-using African_Nations_league.Models;
+﻿using African_Nations_league.Models;
 using Microsoft.Extensions.Configuration;
+using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -10,14 +10,12 @@ namespace African_Nations_league.Services
     {
         private readonly IMongoCollection<Teams> _teams;
 
-        public MongoDbService(IConfiguration configuration)
+        public MongoDbService(IConfiguration config)
         {
-            // Récupère la connection string et le nom de la DB depuis appsettings.json
-            var connectionString = configuration.GetConnectionString("MongoDb");
-            var databaseName = configuration.GetValue<string>("MongoDbSettings:DatabaseName");
-
+            var connectionString = config["MONGO_URI"];
+            var dbName = config["MONGO_DBNAME"];
             var client = new MongoClient(connectionString);
-            var database = client.GetDatabase(databaseName);
+            var database = client.GetDatabase(dbName);
             _teams = database.GetCollection<Teams>("teams");
         }
 
@@ -26,9 +24,21 @@ namespace African_Nations_league.Services
             await _teams.InsertOneAsync(team);
         }
 
+        public async Task UpsertTeamAsync(Teams team)
+        {
+            var filter = Builders<Teams>.Filter.Eq(t => t.TeamName, team.TeamName);
+            var options = new ReplaceOptions { IsUpsert = true };
+            await _teams.ReplaceOneAsync(filter, team, options);
+        }
+
         public async Task<List<Teams>> GetAllTeamsAsync()
         {
             return await _teams.Find(t => true).ToListAsync();
+        }
+
+        public async Task<long> CountTeamsAsync()
+        {
+            return await _teams.CountDocumentsAsync(FilterDefinition<Teams>.Empty);
         }
     }
 }

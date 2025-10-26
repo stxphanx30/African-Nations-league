@@ -3,28 +3,24 @@ using African_Nations_league.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// config
 builder.Services.AddControllersWithViews();
 
-// 🔹 MongoDbService : on doit passer la connection string et le nom de la DB
-builder.Services.AddSingleton<MongoDbService>();
-
-// 🔹 SportMonksService : HttpClient sera injecté automatiquement
+// Register services
+builder.Services.AddSingleton<MongoDbService>(); // MongoDbService prend IConfiguration via ctor
 builder.Services.AddHttpClient<SportMonksService>();
-
-// 🔹 DbSeeder pour le peuplement initial
 builder.Services.AddScoped<DbSeeder>();
 
 var app = builder.Build();
 
-// 🔹 Peupler la DB au démarrage
+// Optionnel : en DEV, tu peux exécuter le seed automatiquement (ou utiliser l'endpoint admin)
 using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
-    await seeder.SeedTeamsAsync(); // Insère les 8 équipes si elles ne sont pas déjà présentes
+    await seeder.SeedTeamsAsync();
 }
 
-// Configure the HTTP request pipeline.
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
