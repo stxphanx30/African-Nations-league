@@ -1,0 +1,39 @@
+﻿@model List<African_Nations_league.Models.Teams>
+
+@{
+    ViewData["Title"] = "Équipes Afrique";
+}
+
+<h2>Équipes Africa Cup</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Drapeau</th>
+            <th>Nom</th>
+            <th>Code</th>
+            <th>Joueurs</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var team in Model)
+        {
+            <tr>
+                <td><img src="@team.FlagUrl" alt="@team.TeamName" width="40" /></td>
+                <td>@team.TeamName</td>
+                <td>@team.TeamCode</td>
+                <td>
+                    <ul>
+                        @foreach (var player in team.Players)
+                        {
+                            <li>@player.PlayerName (@player.Position) @if(player.Rating != null){
+                            <text>- Rating: @player.Rating</text>
+                        }
+    </li>
+                    }
+                </ul>
+            </td>
+        </tr>
+                }
+    </tbody>
+</table>
