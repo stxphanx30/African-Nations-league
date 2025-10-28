@@ -1,0 +1,117 @@
+﻿@model List<MatchPairViewModel>
+@{
+    ViewData["Title"] = "Matches";
+}
+
+<h2>Matches</h2>
+
+<table class="table table-bordered" id="matches-table">
+    <thead>
+        <tr>
+            <th>Home</th>
+            <th>Away</th>
+            <th>Rating (H/A)</th>
+            <th>Action</th>
+            <th>Score</th>
+            <th>But(s)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var m in Model)
+        {
+            <tr data-home="@m.HomeTeamId" data-away="@m.AwayTeamId">
+                <td>@m.HomeTeamName</td>
+                <td>@m.AwayTeamName</td>
+                <td>@m.HomeTeamRating / @m.AwayTeamRating</td>
+                <td>
+                    @if (string.IsNullOrEmpty(m.AwayTeamId))
+                    {
+                        <span class="text-muted">En attente</span>
+                    }
+                    else
+                    {
+                        <form class="simulate-form" method="post" asp-action="SimulateMatch" asp-controller="Admin">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="homeTeamId" value="@m.HomeTeamId" />
+                            <input type="hidden" name="awayTeamId" value="@m.AwayTeamId" />
+                            <button type="submit" class="btn btn-sm btn-primary simulate-btn">Simuler</button>
+                        </form>
+                    }
+                </td>
+                <td class="score-cell">-</td>
+                <td class="scorers-cell"></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // intercepter les submit pour faire un fetch AJAX
+            document.querySelectorAll(".simulate-form").forEach(form => {
+                form.addEventListener("submit", async function (e) {
+                    e.preventDefault();
+
+                    const btn = form.querySelector(".simulate-btn");
+                    btn.disabled = true;
+                    const formData = new FormData(form);
+
+                    // récupère antiforgery token automatiquement si présent
+                    const tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+                    const token = tokenInput ? tokenInput.value : null;
+
+                    const body = new URLSearchParams();
+                    for (const pair of formData.entries()) body.append(pair[0], pair[1]);
+
+                    const headers = { "Accept": "application/json" };
+                    if (token) headers["RequestVerificationToken"] = token;
+
+                    try {
+                        const resp = await fetch(form.action, {
+                            method: "POST",
+                            headers: headers,
+                            body: body
+                        });
+
+                        if (!resp.ok) {
+                            const txt = await resp.text();
+                            alert("Erreur serveur: " + resp.status + " / " + txt);
+                            btn.disabled = false;
+                            return;
+                        }
+
+                        const data = await resp.json();
+
+                        // Met à jour la ligne (tr)
+                        const tr = form.closest("tr");
+                        const scoreCell = tr.querySelector(".score-cell");
+                        const scorersCell = tr.querySelector(".scorers-cell");
+                        scoreCell.textContent = data.homeScore + " - " + data.awayScore;
+                        scorersCell.innerHTML = "";
+                        if (data.goalScorers && data.goalScorers.length > 0) {
+                            const ul = document.createElement("ul");
+                            data.goalScorers.forEach(s => {
+                                const li = document.createElement("li");
+                                li.textContent = s;
+                                ul.appendChild(li);
+                            });
+                            scorersCell.appendChild(ul);
+                        } else {
+                            scorersCell.textContent = "Aucun but";
+                        }
+
+                        // changer texte du bouton en "Simulé"
+                        btn.textContent = "Simulé";
+                        btn.classList.remove("btn-primary");
+                        btn.classList.add("btn-success");
+                    } catch (err) {
+                        console.error(err);
+                        alert("Erreur lors de la simulation");
+                        btn.disabled = false;
+                    }
+                });
+            });
+        });
+    </script>
+}

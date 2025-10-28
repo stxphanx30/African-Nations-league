@@ -1,5 +1,7 @@
 ﻿using African_Nations_league.Models;
 using African_Nations_league.Services;
+using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -12,18 +14,26 @@ namespace African_Nations_league.Data
     {
         private readonly MongoDbService _mongoDbService;
         private readonly SportMonksService _sportMonksService;
+        private readonly ILogger<DbSeeder> _logger;
 
-        public DbSeeder(MongoDbService mongoDbService, SportMonksService sportMonksService)
+        public DbSeeder(MongoDbService mongoDbService, SportMonksService sportMonksService, ILogger<DbSeeder> logger)
         {
             _mongoDbService = mongoDbService;
             _sportMonksService = sportMonksService;
+            _logger = logger;
         }
 
-        public async Task SeedTeamsAsync()
+        // Retourne le nombre d'équipes insérées / upsertées pendant cet appel
+        public async Task<int> SeedTeamsAsync()
         {
             // si déjà >=7 équipes on ne seed pas
             var existingCount = await _mongoDbService.CountTeamsAsync();
-            if (existingCount >= 7) return;
+            _logger.LogInformation("DbSeeder: équipes existantes = {count}", existingCount);
+            if (existingCount >= 7)
+            {
+                _logger.LogInformation("DbSeeder: skip seed (déjà >= 7 équipes).");
+                return 0;
+            }
 
             var teamInfos = new List<(string Name, string Code, string FlagUrl, int TeamId)>
             {
@@ -37,43 +47,63 @@ namespace African_Nations_league.Data
                 ("Liberia", "LBR", "https://cdn.sportmonks.com/images/soccer/teams/0/11392.png", 11392)
             };
 
+            int seeded = 0;
+
             foreach (var ti in teamInfos)
             {
-                // stop si on a atteint 7 après inserts précedents
+                // stop si on a atteint 7 après inserts précédents
                 existingCount = await _mongoDbService.CountTeamsAsync();
                 if (existingCount >= 7) break;
 
-                // récupère les joueurs (GetPlayersByTeamIdAsync retourne Players list avec Rating)
-                var players = await _sportMonksService.GetPlayersByTeamIdAsync(ti.TeamId);
+                List<Players> players = null;
+                try
+                {
+                    players = await _sportMonksService.GetPlayersByTeamIdAsync(ti.TeamId);
+                }
+                catch (System.Exception ex)
+                {
+                    _logger.LogWarning(ex, "DbSeeder: erreur en récupérant players pour teamId {teamId}", ti.TeamId);
+                    players = new List<Players>();
+                }
 
-                // assure que TeamName/TeamFlag sur chaque player
+                // set team meta for players
                 foreach (var p in players)
                 {
                     p.TeamName = ti.Name;
                     p.TeamFlag = ti.FlagUrl;
                 }
 
-                // calcul du team rating (moyenne des players.Rating)
                 double teamRating = 0;
                 if (players != null && players.Count > 0)
-                {
                     teamRating = players.Average(p => (double)p.Rating);
-                }
 
-                // creer document Teams (ne pas assigner Id pour laisser Mongo créer l'_id)
                 var teamDoc = new Teams
                 {
+                    Id = ObjectId.GenerateNewId().ToString(),
                     TeamName = ti.Name,
                     TeamCode = ti.Code,
                     FlagUrl = ti.FlagUrl,
                     TeamRating = teamRating,
-                    Players = players
+                    Players = players ?? new List<Players>()
                 };
 
-                // Upsert : si TeamName existe on remplace, sinon insert
-                await _mongoDbService.UpsertTeamAsync(teamDoc);
+                try
+                {
+                    // Upsert (replace if TeamName exists)
+                    await _mongoDbService.UpsertTeamAsync(teamDoc);
+                    seeded++;
+                    _logger.LogInformation("DbSeeder: upserted team {name}", ti.Name);
+                }
+                catch (System.Exception ex)
+                {
+                    _logger.LogError(ex, "DbSeeder: erreur pendant l'upsert pour {name}", ti.Name);
+                }
             }
+
+            _logger.LogInformation("DbSeeder: terminé. équipes seedées: {count}", seeded);
+            return seeded;
         }
+
         public async Task EnsureAdminUserAsync(UserService userService)
         {
             var adminEmail = "admin@africannations.local";
@@ -86,17 +116,22 @@ namespace African_Nations_league.Data
                     Email = adminEmail,
                     Role = "Admin",
                     PhoneNumber = "",
-                    PasswordHash = ComputeHash("Admin@123") // méthode utilitaire
+                    PasswordHash = ComputeHash("Admin@123")
                 };
                 await userService.CreateUserAsync(admin);
+                _logger.LogInformation("DbSeeder: admin créé ({email})", adminEmail);
+            }
+            else
+            {
+                _logger.LogInformation("DbSeeder: admin déjà présent ({email})", adminEmail);
             }
         }
 
         private string ComputeHash(string input)
         {
             using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-            return Convert.ToBase64String(bytes);
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input ?? ""));
+            return System.Convert.ToBase64String(bytes);
         }
     }
 }

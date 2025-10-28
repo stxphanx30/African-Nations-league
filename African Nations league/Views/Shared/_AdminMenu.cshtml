@@ -3,8 +3,14 @@
     <ul>
         <li><a asp-controller="Admin" asp-action="Index">Dashboard</a></li>
         <li><a asp-controller="Admin" asp-action="Teams">Équipes</a></li>
-        <li><a asp-controller="Admin" asp-action="Users">Utilisateurs</a></li>
-        <li><a asp-controller="Auth" asp-action="Logout">Déconnexion</a></li>
+        <li><a asp-controller="Admin" asp-action="Users">Users</a></li>
+        <li><a asp-controller="Admin" asp-action="Matches">Games</a></li>
+        <li>
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+            </form>
+        </li>
     </ul>
 </nav>
 
@@ -16,5 +22,9 @@
 
     .admin-menu li {
         margin: 0.5rem 0;
+    }
+
+    .admin-menu form {
+        display: inline; /* pour que le bouton soit sur la même ligne si besoin */
     }
 </style>

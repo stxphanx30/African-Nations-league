@@ -1,11 +1,12 @@
 ﻿using African_Nations_league.Models;
 using African_Nations_league.Services;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Security.Cryptography;
 using System.Text;
-using System;
+using System.Threading.Tasks;
 
 namespace African_Nations_league.Controllers
 {
@@ -137,7 +138,16 @@ namespace African_Nations_league.Controllers
             await _userService.CreateUserAsync(user);
             return RedirectToAction("Login");
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Logout()
+        {
+            // Vide la session
+            HttpContext.Session.Clear();
 
+            // Redirige vers login
+            return RedirectToAction("Login", "Auth");
+        }
         private string ComputeHash(string input)
         {
             using var sha256 = SHA256.Create();
