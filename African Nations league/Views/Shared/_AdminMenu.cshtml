@@ -1,0 +1,20 @@
+﻿@* Partial view pour le menu admin *@
+<nav class="admin-menu">
+    <ul>
+        <li><a asp-controller="Admin" asp-action="Index">Dashboard</a></li>
+        <li><a asp-controller="Admin" asp-action="Teams">Équipes</a></li>
+        <li><a asp-controller="Admin" asp-action="Users">Utilisateurs</a></li>
+        <li><a asp-controller="Auth" asp-action="Logout">Déconnexion</a></li>
+    </ul>
+</nav>
+
+<style>
+    .admin-menu ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .admin-menu li {
+        margin: 0.5rem 0;
+    }
+</style>

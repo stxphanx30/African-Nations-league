@@ -1,0 +1,24 @@
+﻿@{
+    ViewData["Title"] = "Signup";
+}
+
+<h2>Inscription Représentant</h2>
+
+<form asp-action="Signup" method="post">
+    <input type="text" name="FullName" placeholder="Nom complet" required />
+    <input type="email" name="Email" placeholder="Email" required />
+    <input type="password" name="password" placeholder="Mot de passe" required />
+    <input type="tel" name="PhoneNumber" placeholder="Numéro de téléphone" />
+
+    <label for="TeamId">Sélectionner le pays (TeamId SportMonks)</label>
+    <select name="TeamId" id="TeamId" required>
+        <option value="">Sélectionner le pays</option>
+        <option value="18546">Egypt (18546)</option>
+        <option value="18549">Togo (18549)</option>
+        <option value="18558">Senegal (18558)</option>
+        <option value="11392">Liberia (11392)</option>
+        <!-- Ajoute ici tous les TeamId que tu veux proposer -->
+    </select>
+
+    <button type="submit">S’inscrire</button>
+</form>

@@ -1,0 +1,39 @@
+﻿@model African_Nations_league.Models.Teams
+@{
+    ViewData["Title"] = "Team details";
+}
+<div class="row">
+    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
+    <div class="col-9">
+        <h2>@Model.TeamName <small>(@Model.TeamCode)</small></h2>
+        @if (!string.IsNullOrEmpty(Model.FlagUrl))
+        {
+            <img src="@Model.FlagUrl" width="80" alt="@Model.TeamName" />
+        }
+        <p>Rating: @Model.TeamRating</p>
+        <h3>Players (@(Model.Players?.Count ?? 0))</h3>
+        @if (Model.Players == null || Model.Players.Count == 0)
+        {
+            <p>Aucun joueur.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Detailed</th><th>Rating</th></tr></thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Players.Count; i++)
+                    {
+                        var p = Model.Players[i];
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>@p.PlayerName</td>
+                            <td>@p.Position</td>
+                            <td>@p.DetailedPosition</td>
+                            <td>@p.Rating</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

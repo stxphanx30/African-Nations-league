@@ -1,0 +1,42 @@
+﻿@model List<African_Nations_league.Models.Teams>
+@{
+    ViewData["Title"] = "Teams";
+}
+<div class="row">
+    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
+    <div class="col-9">
+        <h2>Teams</h2>
+        @if (Model == null || Model.Count == 0)
+        {
+            <p>Aucune équipe trouvée.</p>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr><th>Flag</th><th>Team</th><th>Code</th><th>Rating</th><th>Players</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model)
+                    {
+                        <tr>
+                            <td>
+                                @if (!string.IsNullOrEmpty(t.FlagUrl))
+                                {
+                                    <img src="@t.FlagUrl" alt="@t.TeamName" width="40" />
+                                }
+                            </td>
+                            <td>@t.TeamName</td>
+                            <td>@t.TeamCode</td>
+                            <td>@(t.TeamRating.ToString("0.0"))</td>
+                            <td>@(t.Players?.Count ?? 0)</td>
+                            <td>
+                                <a asp-action="TeamDetails" asp-route-id="@t.Id" class="btn btn-sm btn-outline-primary">Détails</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

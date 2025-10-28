@@ -1,0 +1,30 @@
+﻿@model African_Nations_league.Controllers.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+<div class="row">
+    <div class="col-3">
+        @await Html.PartialAsync("_AdminMenu")
+    </div>
+    <div class="col-9">
+        <h1>Admin Dashboard</h1>
+
+        <div>
+            <strong>Équipes:</strong> @Model.TeamsCount<br />
+            <strong>Utilisateurs:</strong> @Model.UsersCount
+        </div>
+
+        <form asp-action="Seed" method="post" style="margin-top:20px;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-primary">Lancer Seed (ré-insérer/mettre à jour)</button>
+            @if (TempData["SeedMessage"] != null)
+            {
+                <span style="margin-left:10px;color:green">@TempData["SeedMessage"]</span>
+            }
+        </form>
+
+        <hr />
+        <h3>Some quick links</h3>
+        <p><a asp-action="Teams">Voir les équipes</a> | <a asp-action="Users">Voir les utilisateurs</a></p>
+    </div>
+</div>

@@ -1,0 +1,26 @@
+﻿@model List<African_Nations_league.Models.User>
+@{
+    ViewData["Title"] = "Users";
+}
+<div class="row">
+    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
+    <div class="col-9">
+        <h2>Users</h2>
+        @if(Model == null || Model.Count == 0) { <p>Aucun utilisateur</p>; }
+        else {
+            <table class="table">
+                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Team</th></tr></thead>
+                <tbody>
+                @foreach(var u in Model) {
+                    <tr>
+                        <td>@u.FullName</td>
+                        <td>@u.Email</td>
+                        <td>@u.Role</td>
+                        <td>@u.TeamName</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
