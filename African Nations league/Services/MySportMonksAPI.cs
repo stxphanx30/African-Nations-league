@@ -36,23 +36,25 @@ namespace African_Nations_league.Services
                     var teamName = p.Team?.Name ?? "Unknown Team";
                     var teamFlag = p.Team?.ImagePath ?? "";
 
-                    // try to extract rating from provided statistics if present (scale 1-10)
                     int rating = 0;
+
+                    // on tente de récupérer la statistique rating même si certaines valeurs sont null
                     if (p.PlayerStatistics != null)
                     {
-                        // find statistic with type id that represent rating (e.g. type_id == 118 in ton exemple)
                         foreach (var stat in p.PlayerStatistics)
                         {
-                            if (stat?.TypeId == 118 && stat.Value?.Average != null)
+                            if (stat != null && stat.TypeId == 118)
                             {
-                                // convert 1-10 -> 100 scale
-                                rating = (int)Math.Round((stat.Value.Average.Value / 10.0) * 100);
-                                break;
+                                // si Average existe, on convertit, sinon on garde 0
+                                rating = stat.Value?.Average != null
+                                    ? (int)Math.Round((stat.Value.Average.Value / 10.0) * 100)
+                                    : 0;
+                                break; // on prend la première trouvée
                             }
                         }
                     }
 
-                    // fallback to generated rating if not found
+                    // si rating est toujours 0, fallback généré
                     if (rating == 0)
                         rating = Players.GenerateRating(positionName);
 
@@ -71,6 +73,7 @@ namespace African_Nations_league.Services
 
             return players.Count > 23 ? players.GetRange(0, 23) : players;
         }
+
 
         // --- DTOs minimal pour JSON mapping (on mappe que ce dont on a besoin) ---
         private class SportMonksPlayerResponse

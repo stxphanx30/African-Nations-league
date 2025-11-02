@@ -36,16 +36,17 @@ namespace African_Nations_league.Data
             }
 
             var teamInfos = new List<(string Name, string Code, string FlagUrl, int TeamId)>
-            {
-                ("Senegal", "SEN", "https://cdn.sportmonks.com/images/soccer/teams/21/21.png", 1234),
-                ("Ghana", "GHA", "https://cdn.sportmonks.com/images/soccer/teams/22/22.png", 5678),
-                ("Kwa", "KWA", "https://cdn.sportmonks.com/images/soccer/teams/23/23.png", 9101),
-                ("Egypt", "EGY", "https://cdn.sportmonks.com/images/soccer/teams/18/18546.png", 18546),
-                ("Libya", "LBY", "https://cdn.sportmonks.com/images/soccer/teams/17/18545.png", 18545),
-                ("Guinea", "GIN", "https://cdn.sportmonks.com/images/soccer/teams/20/18548.png", 18548),
-                ("Togo", "TGO", "https://cdn.sportmonks.com/images/soccer/teams/21/18549.png", 18549),
-                ("Liberia", "LBR", "https://cdn.sportmonks.com/images/soccer/teams/0/11392.png", 11392)
-            };
+{
+    ("South Africa", "RSA", "https://cdn.sportmonks.com/images/soccer/teams/27/18555.png", 18555),
+    ("Senegal", "SEN", "https://cdn.sportmonks.com/images/soccer/teams/30/18558.png", 18558),
+    ("Congo DR", "COD", "https://cdn.sportmonks.com/images/soccer/teams/24/18552.png", 18552),
+    ("Egypt", "EGY", "https://cdn.sportmonks.com/images/soccer/teams/18/18546.png", 18546),
+    ("Libya", "LBY", "https://cdn.sportmonks.com/images/soccer/teams/17/18545.png", 18545),
+    ("Guinea", "GIN", "https://cdn.sportmonks.com/images/soccer/teams/20/18548.png", 18548),
+    ("Ghana", "GHA", "https://cdn.sportmonks.com/images/soccer/teams/25/18553.png", 18553)
+
+
+};
 
             int seeded = 0;
 
@@ -71,6 +72,7 @@ namespace African_Nations_league.Data
                 {
                     p.TeamName = ti.Name;
                     p.TeamFlag = ti.FlagUrl;
+
                 }
 
                 double teamRating = 0;
