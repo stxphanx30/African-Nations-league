@@ -16,10 +16,12 @@ namespace African_Nations_league.Models
         public string PhoneNumber { get; set; }
         public string Role { get; set; } // "Admin" or "Representative"
 
-        // Pour les représentants
-        public string TeamId { get; set; }      // L'ID de l'équipe choisie
-        public string TeamName { get; set; }    // Nom de l'équipe
-        public string TeamFlag { get; set; }    // URL du drapeau
+        // For representatives
+        public string TeamId { get; set; }      // Team MongoDB Id
+        public string TeamName { get; set; }
+        public string TeamFlag { get; set; }
+        public string ManagerName { get; set; }
+        public double TeamRating { get; set; }  // <- new
         public List<Players> Squad { get; set; } = new List<Players>();
 
     }

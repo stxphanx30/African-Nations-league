@@ -1,0 +1,60 @@
+﻿@model African_Nations_league.Models.TeamDetailsViewModel
+
+@{
+    ViewData["Title"] = "Team details - " + (Model.TeamName ?? "");
+}
+
+<div class="card mb-3">
+    <div class="card-body d-flex align-items-center">
+        <img src="@Model.TeamFlag" alt="@Model.TeamName" style="width:100px;height:60px;object-fit:cover;margin-right:20px" />
+        <div>
+            <h3>@Model.TeamName</h3>
+            @if (!string.IsNullOrEmpty(Model.TeamId))
+            {
+                <div><strong>Code:</strong> @Model.TeamId</div>
+            }
+            <div><strong>Rating:</strong> @(Model.TeamRating.ToString("F1"))</div>
+            <div><strong>Players:</strong> @(Model.Squad?.Count ?? 0)</div>
+            @if (!string.IsNullOrEmpty(Model.ManagerName))
+            {
+                <div><strong>Manager:</strong> @Model.ManagerName</div>
+            }
+        </div>
+    </div>
+</div>
+
+<h4>Players</h4>
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Position</th>
+            <th>Detailed</th>
+            <th>Rating</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Squad != null && Model.Squad.Count > 0)
+        {
+            foreach (var p in Model.Squad)
+            {
+                <tr>
+                    <td>
+                        <img src="@(string.IsNullOrEmpty(p.ImagePath) ? "/images/placeholder.png" : p.ImagePath)"
+                             alt="@p.PlayerName"
+                             style="width:48px;height:48px;object-fit:cover;border-radius:4px" />
+                    </td>
+                    <td>@p.PlayerName</td>
+                    <td>@p.Position</td>
+                    <td>@p.DetailedPosition</td>
+                    <td>@p.Rating</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="5">No players available.</td></tr>
+        }
+    </tbody>
+</table>

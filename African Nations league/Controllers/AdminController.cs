@@ -53,17 +53,136 @@ namespace African_Nations_league.Controllers
         public async Task<IActionResult> Teams()
         {
             if (!IsAdmin()) return RedirectToAction(nameof(AccessDenied));
-            var teams = await _mongo.GetAllTeamsAsync();
-            return View(teams);
+
+            // 1️⃣ Récupérer toutes les équipes de la collection Teams
+            var mongoTeams = await _mongo.GetAllTeamsAsync();
+
+            var mongoTeamViewModels = mongoTeams.Select(t => new TeamViewModel
+            {
+                Id = t.Id,                    // Mongo ObjectId string
+                TeamId = t.TeamId,            // SportMonks id si tu le stockes dans Teams.TeamId
+                TeamName = t.TeamName,
+                TeamFlag = t.FlagUrl,
+                ManagerName = null,           // pas de manager dans Teams collection
+                TeamRating = t.TeamRating,
+                Squad = t.Players
+            }).ToList();
+
+            // 2️⃣ Récupérer toutes les équipes "attachées" aux users
+            var users = await _mongo.GetAllUsersAsync();
+            var userTeamViewModels = new List<TeamViewModel>();
+
+            foreach (var u in users)
+            {
+                if (string.IsNullOrEmpty(u.TeamId) && string.IsNullOrEmpty(u.TeamName)) continue;
+
+                // On crée un TeamViewModel à partir des données stockées dans le user
+                var tv = new TeamViewModel
+                {
+                    Id = u.Id,               // l'id du user (unique pour cette entrée)
+                    TeamId = u.TeamId,       // peut être sportmonks id ou mongo id selon comment tu l'as stocké
+                    TeamName = u.TeamName,
+                    TeamFlag = u.TeamFlag,
+                    ManagerName = u.ManagerName,
+                    TeamRating = u.TeamRating,
+                    Squad = u.Squad
+                };
+
+                userTeamViewModels.Add(tv);
+            }
+
+            // 3️⃣ Fusionner: on veut la liste complète sans doublons (préserver les teams de la collection Teams)
+            // clé de déduplication : TeamId si présent, sinon TeamName
+            var merged = new List<TeamViewModel>(mongoTeamViewModels);
+
+            foreach (var uTv in userTeamViewModels)
+            {
+                bool exists = false;
+
+                if (!string.IsNullOrEmpty(uTv.TeamId))
+                    exists = merged.Any(m => !string.IsNullOrEmpty(m.TeamId) && m.TeamId == uTv.TeamId);
+
+                if (!exists && !string.IsNullOrEmpty(uTv.TeamName))
+                    exists = merged.Any(m => !string.IsNullOrEmpty(m.TeamName) && m.TeamName.Equals(uTv.TeamName, System.StringComparison.OrdinalIgnoreCase));
+
+                if (!exists)
+                    merged.Add(uTv);
+            }
+
+            // Optionnel: trier par TeamName
+            merged = merged.OrderBy(t => t.TeamName).ToList();
+
+            return View(merged); // la vue Admin/Teams doit accepter List<TeamViewModel>
         }
 
-        // Détail d'une équipe
+        // Détail d'une équipe (Admin)
         public async Task<IActionResult> TeamDetails(string id)
         {
             if (!IsAdmin()) return RedirectToAction(nameof(AccessDenied));
-            var team = await _mongo.GetTeamByIdAsync(id);
-            if (team == null) return NotFound();
-            return View(team);
+            if (string.IsNullOrEmpty(id)) return NotFound("Team id not provided");
+
+            // Construire une liste unifiée d'équipes à partir des deux collections
+            var teamList = new List<TeamDetailsViewModel>();
+
+            // 1) Teams collection
+            var mongoTeams = await _mongo.GetAllTeamsAsync();
+            foreach (var t in mongoTeams)
+            {
+                teamList.Add(new TeamDetailsViewModel
+                {
+                    Id = t.Id,
+                    TeamId = t.TeamId,
+                    TeamName = t.TeamName,
+                    TeamFlag = t.FlagUrl,
+                    ManagerName = null,
+                    TeamRating = t.TeamRating,
+                    Squad = t.Players
+                });
+            }
+
+            // 2) Users collection -> équipe définie par user
+            var users = await _mongo.GetAllUsersAsync();
+            foreach (var u in users)
+            {
+                // éviter doublons selon TeamId ou TeamName
+                var already = teamList.Any(x =>
+                    (!string.IsNullOrEmpty(x.TeamId) && !string.IsNullOrEmpty(u.TeamId) && x.TeamId == u.TeamId) ||
+                    (!string.IsNullOrEmpty(x.TeamName) && !string.IsNullOrEmpty(u.TeamName) && x.TeamName.Equals(u.TeamName, System.StringComparison.OrdinalIgnoreCase))
+                );
+
+                if (!already)
+                {
+                    teamList.Add(new TeamDetailsViewModel
+                    {
+                        Id = u.TeamId ?? u.Id,    // si TeamId est sportmonks id, on le met, sinon on garde user.Id
+                        TeamId = u.TeamId,
+                        TeamName = u.TeamName,
+                        TeamFlag = u.TeamFlag,
+                        ManagerName = u.ManagerName,
+                        TeamRating = u.TeamRating,
+                        Squad = u.Squad
+                    });
+                }
+            }
+
+            // 3) Rechercher la team demandée — tolérant : on cherche par Id (mongo id), TeamId (sportmonks id) ou TeamName
+            TeamDetailsViewModel vm = null;
+
+            // by Id (mongo teams.Id or user.TeamId stored as mongo id)
+            vm = teamList.FirstOrDefault(t => !string.IsNullOrEmpty(t.Id) && t.Id == id);
+
+            // by TeamId (sportmonks numeric id stored in TeamId)
+            if (vm == null)
+                vm = teamList.FirstOrDefault(t => !string.IsNullOrEmpty(t.TeamId) && t.TeamId == id);
+
+            // by TeamName (friendly fallback)
+            if (vm == null)
+                vm = teamList.FirstOrDefault(t => !string.IsNullOrEmpty(t.TeamName) && t.TeamName.Equals(id, System.StringComparison.OrdinalIgnoreCase));
+
+            if (vm == null)
+                return NotFound("Team not found");
+
+            return View(vm); // Admin/TeamDetails.cshtml doit accepter TeamDetailsViewModel
         }
 
         // Liste des utilisateurs
@@ -125,8 +244,8 @@ namespace African_Nations_league.Controllers
             // fetch teams from DB synchronously is okay here since we already have ids;
             // better to use async version if fetching: but to keep simple return simulation only
             // Ideally fetch rating from DB:
-            var home = _mongo.GetTeamByIdAsync(homeTeamId).GetAwaiter().GetResult();
-            var away = _mongo.GetTeamByIdAsync(awayTeamId).GetAwaiter().GetResult();
+            var home = _mongo.GetTeamByIdOrCodeAsync(homeTeamId).GetAwaiter().GetResult();
+            var away = _mongo.GetTeamByIdOrCodeAsync(awayTeamId).GetAwaiter().GetResult();
 
             if (home == null || away == null)
                 return NotFound();

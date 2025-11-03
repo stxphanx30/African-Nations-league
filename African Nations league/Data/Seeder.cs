@@ -82,12 +82,14 @@ namespace African_Nations_league.Data
                 var teamDoc = new Teams
                 {
                     Id = ObjectId.GenerateNewId().ToString(),
+                    TeamId = ti.TeamId.ToString(), // <- add this
                     TeamName = ti.Name,
                     TeamCode = ti.Code,
                     FlagUrl = ti.FlagUrl,
                     TeamRating = teamRating,
                     Players = players ?? new List<Players>()
                 };
+
 
                 try
                 {

@@ -1,39 +1,75 @@
-﻿@model African_Nations_league.Models.Teams
+﻿@model African_Nations_league.Models.TeamDetailsViewModel
+
 @{
-    ViewData["Title"] = "Team details";
+    ViewData["Title"] = "Team details - " + (Model.TeamName ?? "Team");
 }
+
 <div class="row">
-    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
+    <div class="col-3">
+        @await Html.PartialAsync("_AdminMenu")
+    </div>
+
     <div class="col-9">
-        <h2>@Model.TeamName <small>(@Model.TeamCode)</small></h2>
-        @if (!string.IsNullOrEmpty(Model.FlagUrl))
-        {
-            <img src="@Model.FlagUrl" width="80" alt="@Model.TeamName" />
-        }
-        <p>Rating: @Model.TeamRating</p>
-        <h3>Players (@(Model.Players?.Count ?? 0))</h3>
-        @if (Model.Players == null || Model.Players.Count == 0)
-        {
-            <p>Aucun joueur.</p>
-        }
-        else
-        {
-            <table class="table">
-                <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Detailed</th><th>Rating</th></tr></thead>
-                <tbody>
-                    @for (int i = 0; i < Model.Players.Count; i++)
+        <div class="card mb-3">
+            <div class="card-body d-flex align-items-center">
+                @if (!string.IsNullOrEmpty(Model.TeamFlag))
+                {
+                    <img src="@Model.TeamFlag" alt="@Model.TeamName" style="width:100px;height:60px;object-fit:cover;margin-right:20px" />
+                }
+                <div>
+                    <h3>@Model.TeamName <small class="text-muted">(@Model.TeamId)</small></h3>
+
+                    @if (!string.IsNullOrEmpty(Model.ManagerName))
                     {
-                        var p = Model.Players[i];
+                        <div><strong>Manager:</strong> @Model.ManagerName</div>
+                    }
+
+                    <div><strong>Rating:</strong> @(Model.TeamRating.ToString("F1"))</div>
+                    <div><strong>Players:</strong> @(Model.Squad?.Count ?? 0)</div>
+                </div>
+            </div>
+        </div>
+
+        <h4>Players</h4>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Name</th>
+                    <th>Position</th>
+                    <th>Detailed</th>
+                    <th>Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Squad != null && Model.Squad.Count > 0)
+                {
+                    foreach (var p in Model.Squad)
+                    {
                         <tr>
-                            <td>@(i + 1)</td>
+                            <td>
+                                <img src="@(string.IsNullOrEmpty(p.ImagePath) ? "/images/placeholder.png" : p.ImagePath)"
+                                     alt="@p.PlayerName"
+                                     style="width:48px;height:48px;object-fit:cover;border-radius:4px" />
+                            </td>
                             <td>@p.PlayerName</td>
                             <td>@p.Position</td>
                             <td>@p.DetailedPosition</td>
                             <td>@p.Rating</td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        }
+                }
+                else
+                {
+                    <tr><td colspan="5">No players available.</td></tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="mt-3">
+            <a asp-action="Teams" asp-controller="Admin" class="btn btn-secondary">Back to teams</a>
+            <!-- Optional edit button if Admin can edit this team -->
+            <a asp-action="EditTeam" asp-controller="Admin" asp-route-id="@Model.Id" class="btn btn-warning ms-2">Edit team</a>
+        </div>
     </div>
 </div>

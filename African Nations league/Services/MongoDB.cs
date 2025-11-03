@@ -1,5 +1,6 @@
 ﻿using African_Nations_league.Models;
 using Microsoft.Extensions.Configuration;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ namespace African_Nations_league.Services
     public class MongoDbService
     {
         private readonly IMongoCollection<Teams> _teams;
-
+        private readonly IMongoCollection<User> _users;
         public MongoDbService(IConfiguration config)
         {
             var connectionString = config["MONGO_URI"];
@@ -17,6 +18,7 @@ namespace African_Nations_league.Services
             var client = new MongoClient(connectionString);
             var database = client.GetDatabase(dbName);
             _teams = database.GetCollection<Teams>("teams");
+            _users = database.GetCollection<User>("users");
         }
 
         public async Task InsertTeamAsync(Teams team)
@@ -39,11 +41,23 @@ namespace African_Nations_league.Services
         public async Task<long> CountTeamsAsync()
         {
             return await _teams.CountDocumentsAsync(FilterDefinition<Teams>.Empty);
-        }    
-
-        public async Task<Teams> GetTeamByIdAsync(string id)
+        }
+        public async Task<List<User>> GetAllUsersAsync()
         {
-            return await _teams.Find(t => t.Id == id).FirstOrDefaultAsync();
+            return await _users.Find(_ => true).ToListAsync();
+        }
+        public async Task<Teams> GetTeamByIdOrCodeAsync(string teamIdOrCode)
+        {
+            if (ObjectId.TryParse(teamIdOrCode, out var objectId))
+            {
+                // TeamId is a proper ObjectId
+                return await _teams.Find(t => t.Id == teamIdOrCode).FirstOrDefaultAsync();
+            }
+            else
+            {
+                // fallback: use TeamName or TeamCode
+                return await _teams.Find(t => t.TeamName == teamIdOrCode).FirstOrDefaultAsync();
+            }
         }
         public async Task EnsureIndexesAsync()
 {

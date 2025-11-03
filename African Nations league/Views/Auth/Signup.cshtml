@@ -2,23 +2,51 @@
     ViewData["Title"] = "Signup";
 }
 
-<h2>Inscription Représentant</h2>
+<h2>Signup (Representatives)</h2>
 
 <form asp-action="Signup" method="post">
-    <input type="text" name="FullName" placeholder="Nom complet" required />
-    <input type="email" name="Email" placeholder="Email" required />
-    <input type="password" name="password" placeholder="Mot de passe" required />
-    <input type="tel" name="PhoneNumber" placeholder="Numéro de téléphone" />
+    @Html.AntiForgeryToken()
 
-    <label for="TeamId">Sélectionner le pays (TeamId SportMonks)</label>
-    <select name="TeamId" id="TeamId" required>
-        <option value="">Sélectionner le pays</option>
-        <option value="18546">Egypt (18546)</option>
-        <option value="18549">Togo (18549)</option>
-        <option value="18558">Senegal (18558)</option>
-        <option value="11392">Liberia (11392)</option>
-        <!-- Ajoute ici tous les TeamId que tu veux proposer -->
-    </select>
+    <div>
+        <label>Full name</label>
+        <input type="text" name="FullName" placeholder="Full name" required />
+    </div>
 
-    <button type="submit">S’inscrire</button>
+    <div>
+        <label>Email</label>
+        <input type="email" name="Email" placeholder="Email" required />
+    </div>
+
+    <div>
+        <label>Password</label>
+        <input type="password" name="Password" placeholder="Password" required />
+    </div>
+
+    <div>
+        <label>Phone number</label>
+        <input type="tel" name="PhoneNumber" placeholder="Phone number" />
+    </div>
+
+    <div>
+        <label>Manager name</label>
+        <input type="text" name="ManagerName" placeholder="Manager name" required />
+    </div>
+
+    <div>
+        <label>Country (Team)</label>
+        <select name="TeamId" id="TeamId" required>
+            <option value="">-- Select country --</option>
+            <!-- Example options, replace with your actual sportmonks ids -->
+            <option value="18558">Senegal</option>
+            <option value="18555">South Africa</option>
+            <option value="18552">Congo DR</option>
+            <option value="18546">Egypt</option>
+            <option value="18549">Togo</option>
+            <!-- OR populate from ViewBag.TeamOptions in GET action -->
+        </select>
+    </div>
+
+    <input type="hidden" name="Role" value="Representative" />
+
+    <button type="submit">Sign up</button>
 </form>

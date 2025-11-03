@@ -16,7 +16,7 @@ if (string.IsNullOrWhiteSpace(mongoUri))
 
 // ----------------------- MVC + Session -----------------------
 builder.Services.AddControllersWithViews();
-
+builder.Services.AddSingleton<MatchService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

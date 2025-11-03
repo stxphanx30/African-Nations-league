@@ -1,0 +1,21 @@
+﻿@* Partial for representative navigation *@
+<nav class="rep-menu">
+    <ul>
+        <li><a asp-controller="Representative" asp-action="Index">Dashboard</a></li>
+        <li><a asp-controller="Representative" asp-action="Profile">Profile</a></li>
+        <li><a asp-controller="Representative" asp-action="Teams" asp-route-id="">Teams</a></li>
+        <li><a asp-controller="Representative" asp-action="Fixtures">Fixtures</a></li>
+        <li><a asp-controller="Representative" asp-action="Leaderboard">Leaderboard</a></li>
+        <li>
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-link">Logout</button>
+            </form>
+        </li>
+    </ul>
+</nav>
+
+<style>
+    .rep-menu ul { list-style: none; padding: 0; }
+    .rep-menu li { margin: .4rem 0; }
+</style>

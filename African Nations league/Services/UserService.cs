@@ -20,7 +20,11 @@ namespace African_Nations_league.Services
         {
             return await _users.Find(_ => true).ToListAsync();
         }
-
+        public async Task<User> GetCurrentUserAsync(string email)
+        {
+            if (string.IsNullOrEmpty(email)) return null;
+            return await _users.Find(u => u.Email == email).FirstOrDefaultAsync();
+        }
         // 🔹 Récupérer un utilisateur par email
         public async Task<User> GetByEmailAsync(string email)
         {
