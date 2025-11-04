@@ -203,6 +203,109 @@ namespace African_Nations_league.Controllers
             TempData["SeedMessage"] = "Seed executed.";
             return RedirectToAction(nameof(Index));
         }
+        public async Task<IActionResult> SimulateMatch(string fixtureId)
+        {
+            if (!IsAdmin()) return RedirectToAction("AccessDenied");
+
+            if (string.IsNullOrEmpty(fixtureId))
+                return NotFound("Fixture ID not provided");
+
+            var fixture = await _mongo.GetFixtureByIdAsync(fixtureId);
+           
+
+            fixture.Events.Clear(); // reset events
+            fixture.ScoreA = 0;
+            fixture.ScoreB = 0;
+            fixture.Status = "Playing";
+
+            var random = new Random();
+
+            // Récupérer les équipes
+            var teamA = await _mongo.GetTeamByIdOrCodeAsync(fixture.TeamAId);
+            var teamB = await _mongo.GetTeamByIdOrCodeAsync(fixture.TeamBId);
+
+            if (teamA == null || teamB == null)
+                return NotFound("One of the teams not found");
+
+            // Probabilité de marquer basée sur le rating
+            double probA = teamA.TeamRating / (teamA.TeamRating + teamB.TeamRating);
+            double probB = teamB.TeamRating / (teamA.TeamRating + teamB.TeamRating);
+
+            // Simulation des 90 minutes
+            for (int minute = 1; minute <= 90; minute++)
+            {
+                if (random.NextDouble() < probA * 0.02)
+                {
+                    var scorer = teamA.Players[random.Next(teamA.Players.Count)];
+                    fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamA.TeamName });
+                    fixture.ScoreA++;
+                }
+
+                if (random.NextDouble() < probB * 0.02)
+                {
+                    var scorer = teamB.Players[random.Next(teamB.Players.Count)];
+                    fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamB.TeamName });
+                    fixture.ScoreB++;
+                }
+            }
+
+            // Prolongations si égalité
+            if (fixture.ScoreA == fixture.ScoreB)
+            {
+                for (int minute = 91; minute <= 120; minute++)
+                {
+                    if (random.NextDouble() < probA * 0.01)
+                    {
+                        var scorer = teamA.Players[random.Next(teamA.Players.Count)];
+                        fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamA.TeamName });
+                        fixture.ScoreA++;
+                    }
+
+                    if (random.NextDouble() < probB * 0.01)
+                    {
+                        var scorer = teamB.Players[random.Next(teamB.Players.Count)];
+                        fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamB.TeamName });
+                        fixture.ScoreB++;
+                    }
+                }
+            }
+
+            // Pénaltys si toujours égalité
+            if (fixture.ScoreA == fixture.ScoreB)
+            {
+                int penA = 0, penB = 0;
+                for (int i = 0; i < 5; i++)
+                {
+                    if (random.NextDouble() < 0.75) penA++;
+                    if (random.NextDouble() < 0.75) penB++;
+                }
+
+                while (penA == penB)
+                {
+                    if (random.NextDouble() < 0.75) penA++;
+                    if (random.NextDouble() < 0.75) penB++;
+                }
+
+                fixture.Events.Add(new GoalEvent
+                {
+                    PlayerName = "Penalties",
+                    Minute = 120,
+                    TeamName = $"{teamA.TeamName} {penA} - {penB} {teamB.TeamName}"
+                });
+
+                fixture.ScoreA += penA;
+                fixture.ScoreB += penB;
+            }
+
+            fixture.Status = "Finished";
+
+            // ✅ Mettre à jour la fixture dans la DB
+            await _mongo.UpdateFixtureAsync(fixture);
+
+            TempData["Success"] = $"Match {teamA.TeamName} vs {teamB.TeamName} simulated successfully!";
+
+            return RedirectToAction("GenerateFixtures");
+        }
 
         public async Task<IActionResult> GenerateFixtures()
         {

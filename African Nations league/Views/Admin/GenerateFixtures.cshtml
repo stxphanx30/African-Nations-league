@@ -12,6 +12,7 @@
             <th>Score</th>
             <th>Team B</th>
             <th>Status</th>
+            <th>Events</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -24,10 +25,28 @@
                 <td>@f.TeamBName</td>
                 <td>@f.Status</td>
                 <td>
-                    <a asp-action="SimulateMatch" asp-route-id="@f.Id" class="btn btn-sm btn-primary">Simulate</a>
+                    @if (f.Events != null && f.Events.Count > 0)
+                    {
+                        <ul style="list-style:none;padding-left:0;margin-bottom:0;">
+                            @foreach (var e in f.Events.OrderBy(ev => ev.Minute))
+                            {
+                                <li>
+                                    @($"{e.Minute}' - {e.PlayerName} ({e.TeamName})")
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="SimulateMatch" asp-route-fixtureId="@f.Id" class="btn btn-sm btn-primary">Simulate</a>
                     <a asp-action="PlayMatch" asp-route-id="@f.Id" class="btn btn-sm btn-success">Play</a>
                 </td>
             </tr>
         }
     </tbody>
 </table>
+

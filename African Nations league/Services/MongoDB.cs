@@ -27,7 +27,24 @@ namespace African_Nations_league.Services
         {
             await _teams.InsertOneAsync(team);
         }
+        // Dans ton MongoDbService
+        public async Task<Fixture> GetFixtureByIdAsync(string fixtureId)
+        {
+            if (string.IsNullOrEmpty(fixtureId))
+                return null;
 
+            var filter = Builders<Fixture>.Filter.Eq(f => f.Id, fixtureId);
+            return await _fixturesCollection.Find(filter).FirstOrDefaultAsync();
+        }
+
+        public async Task UpdateFixtureAsync(Fixture fixture)
+        {
+            if (fixture == null || string.IsNullOrEmpty(fixture.Id))
+                throw new ArgumentException("Invalid fixture");
+
+            var filter = Builders<Fixture>.Filter.Eq(f => f.Id, fixture.Id);
+            await _fixturesCollection.ReplaceOneAsync(filter, fixture);
+        }
         public async Task UpsertTeamAsync(Teams team)
         {
             var filter = Builders<Teams>.Filter.Eq(t => t.TeamName, team.TeamName);
@@ -76,18 +93,22 @@ namespace African_Nations_league.Services
         {
             return await _users.Find(_ => true).ToListAsync();
         }
-        public async Task<Teams> GetTeamByIdOrCodeAsync(string teamIdOrCode)
+        public async Task<Teams> GetTeamByIdOrCodeAsync(string idOrCode)
         {
-            if (ObjectId.TryParse(teamIdOrCode, out var objectId))
-            {
-                // TeamId is a proper ObjectId
-                return await _teams.Find(t => t.Id == teamIdOrCode).FirstOrDefaultAsync();
-            }
-            else
-            {
-                // fallback: use TeamName or TeamCode
-                return await _teams.Find(t => t.TeamName == teamIdOrCode).FirstOrDefaultAsync();
-            }
+            if (string.IsNullOrEmpty(idOrCode))
+                return null;
+
+            // Normalize: try ObjectId first
+            ObjectId objId;
+            bool isObjectId = ObjectId.TryParse(idOrCode, out objId);
+
+            var filter = Builders<Teams>.Filter.Or(
+                isObjectId ? Builders<Teams>.Filter.Eq(t => t.Id, idOrCode) : Builders<Teams>.Filter.Empty,
+                Builders<Teams>.Filter.Eq(t => t.TeamId, idOrCode),
+                Builders<Teams>.Filter.Eq(t => t.TeamName, idOrCode)
+            );
+
+            return await _teams.Find(filter).FirstOrDefaultAsync();
         }
         public async Task EnsureIndexesAsync()
 {
