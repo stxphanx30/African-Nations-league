@@ -11,6 +11,7 @@ namespace African_Nations_league.Services
     {
         private readonly IMongoCollection<Teams> _teams;
         private readonly IMongoCollection<User> _users;
+        private readonly IMongoCollection<Fixture> _fixturesCollection;
         public MongoDbService(IConfiguration config)
         {
             var connectionString = config["MONGO_URI"];
@@ -19,6 +20,7 @@ namespace African_Nations_league.Services
             var database = client.GetDatabase(dbName);
             _teams = database.GetCollection<Teams>("teams");
             _users = database.GetCollection<User>("users");
+            _fixturesCollection = database.GetCollection<Fixture>("Fixtures");
         }
 
         public async Task InsertTeamAsync(Teams team)
@@ -37,10 +39,38 @@ namespace African_Nations_league.Services
         {
             return await _teams.Find(t => true).ToListAsync();
         }
+        public async Task<List<Fixture>> GenerateFixturesAsync(List<Teams> teams)
+        {
+            var fixtures = new List<Fixture>();
+            var rnd = new Random();
 
+            // On mélange les équipes
+            var shuffled = teams.OrderBy(x => rnd.Next()).ToList();
+
+            // On fait les paires deux à deux
+            for (int i = 0; i < shuffled.Count - 1; i += 2)
+            {
+                fixtures.Add(new Fixture
+                {
+                    TeamAId = shuffled[i].Id,
+                    TeamAName = shuffled[i].TeamName,
+                    TeamBId = shuffled[i + 1].Id,
+                    TeamBName = shuffled[i + 1].TeamName
+                });
+            }
+
+            // Stocker dans la collection "Fixtures"
+            await _fixturesCollection.InsertManyAsync(fixtures);
+
+            return fixtures;
+        }
         public async Task<long> CountTeamsAsync()
         {
             return await _teams.CountDocumentsAsync(FilterDefinition<Teams>.Empty);
+        }
+        public async Task<List<Fixture>> GetAllFixturesAsync()
+        {
+            return await _fixturesCollection.Find(_ => true).ToListAsync();
         }
         public async Task<List<User>> GetAllUsersAsync()
         {

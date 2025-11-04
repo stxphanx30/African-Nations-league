@@ -1,0 +1,33 @@
+﻿@model List<African_Nations_league.Models.Fixture>
+@{
+    ViewData["Title"] = "Fixtures";
+}
+
+<h2>Fixtures</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Team A</th>
+            <th>Score</th>
+            <th>Team B</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var f in Model)
+        {
+            <tr>
+                <td>@f.TeamAName</td>
+                <td>@f.ScoreA - @f.ScoreB</td>
+                <td>@f.TeamBName</td>
+                <td>@f.Status</td>
+                <td>
+                    <a asp-action="SimulateMatch" asp-route-id="@f.Id" class="btn btn-sm btn-primary">Simulate</a>
+                    <a asp-action="PlayMatch" asp-route-id="@f.Id" class="btn btn-sm btn-success">Play</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -203,101 +203,52 @@ namespace African_Nations_league.Controllers
             TempData["SeedMessage"] = "Seed executed.";
             return RedirectToAction(nameof(Index));
         }
-        // GET: Admin/Matches
-        // GET: /Admin/Matches
-        public async Task<IActionResult> Matches()
+
+        public async Task<IActionResult> GenerateFixtures()
         {
-            var teams = await _mongo.GetAllTeamsAsync();
+            if (!IsAdmin()) return RedirectToAction("AccessDenied");
 
-            // shuffle
-            var shuffled = teams.OrderBy(t => _rnd.Next()).ToList();
-
-            var pairs = new List<MatchPairViewModel>();
-            for (int i = 0; i < shuffled.Count; i += 2)
+            // 1️⃣ Vérifier s'il y a déjà des fixtures
+            var existingFixtures = await _mongo.GetAllFixturesAsync();
+            if (existingFixtures != null && existingFixtures.Count > 0)
             {
-                var home = shuffled[i];
-                Teams away = (i + 1 < shuffled.Count) ? shuffled[i + 1] : null;
-
-                pairs.Add(new MatchPairViewModel
-                {
-                    HomeTeamId = home.Id,
-                    HomeTeamName = home.TeamName,
-                    HomeTeamRating = home.TeamRating,
-                    AwayTeamId = away?.Id,
-                    AwayTeamName = away?.TeamName ?? "—",
-                    AwayTeamRating = away?.TeamRating ?? 0
-                });
+                // S'il y a déjà des fixtures, on les utilise
+                TempData["Info"] = "Fixtures already exist. Using existing fixtures.";
+                return View(existingFixtures);
             }
 
-            return View(pairs);
-        }
+            // 2️⃣ Récupérer toutes les équipes (Teams + Users)
+            var teams = await _mongo.GetAllTeamsAsync();
+            var users = await _mongo.GetAllUsersAsync();
 
-        // POST: /Admin/SimulateMatch
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult SimulateMatch([FromForm] string homeTeamId, [FromForm] string awayTeamId)
-        {
-            // if awayTeamId is null -> nothing to simulate
-            if (string.IsNullOrEmpty(awayTeamId))
-                return BadRequest(new { error = "No opponent" });
-
-            // fetch teams from DB synchronously is okay here since we already have ids;
-            // better to use async version if fetching: but to keep simple return simulation only
-            // Ideally fetch rating from DB:
-            var home = _mongo.GetTeamByIdOrCodeAsync(homeTeamId).GetAwaiter().GetResult();
-            var away = _mongo.GetTeamByIdOrCodeAsync(awayTeamId).GetAwaiter().GetResult();
-
-            if (home == null || away == null)
-                return NotFound();
-
-            // simulate
-            var result = SimulateOneMatch(home, away);
-
-            // Optionally: persist match result to DB (you can add a Matches collection) - omitted for now
-
-            return Ok(result); // returns JSON
-        }
-
-        private SimulatedMatch SimulateOneMatch(Teams home, Teams away)
-        {
-            // Probability based on TeamRating
-            double homeR = Math.Max(1, home.TeamRating);
-            double awayR = Math.Max(1, away.TeamRating);
-            double total = homeR + awayR;
-            double homeWinProb = homeR / total;
-            double awayWinProb = awayR / total;
-
-            // base goals 0..3 random
-            int homeGoals = _rnd.Next(0, 4);
-            int awayGoals = _rnd.Next(0, 4);
-
-            // nudge scores by probability
-            if (homeWinProb > awayWinProb) homeGoals = Math.Max(homeGoals, _rnd.Next(1, 3));
-            else awayGoals = Math.Max(awayGoals, _rnd.Next(1, 3));
-
-            // Simulate scorers (simple names using jersey number or index)
-            var scorers = new List<string>();
-            for (int i = 0; i < homeGoals; i++)
-                scorers.Add($"{home.TeamName} - player #{_rnd.Next(1, 24)} (min {_rnd.Next(1, 90)})");
-            for (int i = 0; i < awayGoals; i++)
-                scorers.Add($"{away.TeamName} - player #{_rnd.Next(1, 24)} (min {_rnd.Next(1, 90)})");
-
-            string resultText = "Simulé";
-            if (homeGoals > awayGoals) resultText = $"{home.TeamName} gagne";
-            else if (awayGoals > homeGoals) resultText = $"{away.TeamName} gagne";
-            else resultText = "Nul";
-
-            return new SimulatedMatch
+            foreach (var u in users)
             {
-                HomeTeamId = home.Id,
-                AwayTeamId = away.Id,
-                HomeTeam = home.TeamName,
-                AwayTeam = away.TeamName,
-                HomeScore = homeGoals,
-                AwayScore = awayGoals,
-                Result = resultText,
-                GoalScorers = scorers
-            };
+                if (!string.IsNullOrEmpty(u.TeamId) && !teams.Any(t => t.TeamId == u.TeamId))
+                {
+                    teams.Add(new Teams
+                    {
+                        Id = u.TeamId,
+                        TeamId = u.TeamId,
+                        TeamName = u.TeamName,
+                        FlagUrl = u.TeamFlag,
+                        TeamRating = u.TeamRating,
+                        Players = u.Squad
+                    });
+                }
+            }
+
+            if (teams.Count < 8)
+            {
+                TempData["Error"] = "Pas assez d'équipes pour générer des fixtures (minimum 8).";
+                return RedirectToAction("Teams");
+            }
+
+            // 3️⃣ Générer les fixtures si elles n'existent pas
+            var fixtures = await _mongo.GenerateFixturesAsync(teams);
+
+            TempData["Success"] = $"{fixtures.Count} fixtures successfully generated!";
+            return View(fixtures);
         }
+
     }
 }
