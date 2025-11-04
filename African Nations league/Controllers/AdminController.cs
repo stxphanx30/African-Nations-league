@@ -311,16 +311,7 @@ namespace African_Nations_league.Controllers
         {
             if (!IsAdmin()) return RedirectToAction("AccessDenied");
 
-            // 1️⃣ Vérifier s'il y a déjà des fixtures
-            var existingFixtures = await _mongo.GetAllFixturesAsync();
-            if (existingFixtures != null && existingFixtures.Count > 0)
-            {
-                // S'il y a déjà des fixtures, on les utilise
-                TempData["Info"] = "Fixtures already exist. Using existing fixtures.";
-                return View(existingFixtures);
-            }
-
-            // 2️⃣ Récupérer toutes les équipes (Teams + Users)
+            // 1️⃣ Récupérer toutes les équipes (Teams + Users)
             var teams = await _mongo.GetAllTeamsAsync();
             var users = await _mongo.GetAllUsersAsync();
 
@@ -340,16 +331,52 @@ namespace African_Nations_league.Controllers
                 }
             }
 
-            if (teams.Count < 8)
+            // 2️⃣ Récupérer toutes les fixtures existantes
+            var fixtures = await _mongo.GetAllFixturesAsync();
+
+            var existingTeamIds = teams.Select(t => t.Id).ToList();
+
+            // 3️⃣ Supprimer les fixtures qui contiennent des équipes qui n'existent plus
+            foreach (var f in fixtures)
             {
-                TempData["Error"] = "Pas assez d'équipes pour générer des fixtures (minimum 8).";
-                return RedirectToAction("Teams");
+                if (!existingTeamIds.Contains(f.TeamAId) || !existingTeamIds.Contains(f.TeamBId))
+                {
+                    await _mongo.DeleteFixtureByIdAsync(f.Id);
+                }
             }
 
-            // 3️⃣ Générer les fixtures si elles n'existent pas
-            var fixtures = await _mongo.GenerateFixturesAsync(teams);
+            // 4️⃣ Regénérer des fixtures pour les équipes manquantes
+            fixtures = await _mongo.GetAllFixturesAsync(); // reload après suppression
+            var usedTeamIds = fixtures.SelectMany(f => new[] { f.TeamAId, f.TeamBId }).Distinct().ToList();
+            var missingTeams = teams.Where(t => !usedTeamIds.Contains(t.Id)).ToList();
 
-            TempData["Success"] = $"{fixtures.Count} fixtures successfully generated!";
+            if (missingTeams.Count >= 2)
+            {
+                var rnd = new Random();
+                var shuffled = missingTeams.OrderBy(x => rnd.Next()).ToList();
+
+                var newFixtures = new List<Fixture>();
+                for (int i = 0; i < shuffled.Count - 1; i += 2)
+                {
+                    newFixtures.Add(new Fixture
+                    {
+                        TeamAId = shuffled[i].Id,
+                        TeamAName = shuffled[i].TeamName,
+                        TeamBId = shuffled[i + 1].Id,
+                        TeamBName = shuffled[i + 1].TeamName
+                    });
+                }
+
+                if (newFixtures.Count > 0)
+                    await _mongo.InsertManyFixturesAsync(newFixtures);
+            }
+
+            // 5️⃣ Recharger toutes les fixtures pour la vue
+            fixtures = await _mongo.GetAllFixturesAsync();
+
+            // 6️⃣ Vérifier si toutes les équipes sont présentes pour activer les boutons
+            ViewBag.CanSimulate = teams.Count >= 8;
+
             return View(fixtures);
         }
 

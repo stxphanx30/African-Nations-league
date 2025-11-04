@@ -3,6 +3,14 @@
     ViewData["Title"] = "Fixtures";
 }
 
+<style>
+    .disabled-link {
+        pointer-events: none;
+        opacity: 0.5;
+        cursor: default;
+    }
+</style>
+
 <h2>Fixtures</h2>
 
 <table class="table table-striped">
@@ -30,9 +38,7 @@
                         <ul style="list-style:none;padding-left:0;margin-bottom:0;">
                             @foreach (var e in f.Events.OrderBy(ev => ev.Minute))
                             {
-                                <li>
-                                    @($"{e.Minute}' - {e.PlayerName} ({e.TeamName})")
-                                </li>
+                                <li>@($"{e.Minute}' - {e.PlayerName} ({e.TeamName})")</li>
                             }
                         </ul>
                     }
@@ -42,11 +48,37 @@
                     }
                 </td>
                 <td>
-                    <a asp-action="SimulateMatch" asp-route-fixtureId="@f.Id" class="btn btn-sm btn-primary">Simulate</a>
-                    <a asp-action="PlayMatch" asp-route-id="@f.Id" class="btn btn-sm btn-success">Play</a>
+                    <a asp-action="SimulateMatch" asp-route-fixtureId="@f.Id"
+                       class="btn btn-sm btn-primary @(ViewBag.CanSimulate ? "" : "disabled-link")">Simulate</a>
+
+                    <a asp-action="PlayMatch" asp-route-id="@f.Id"
+                       class="btn btn-sm btn-success @(ViewBag.CanSimulate ? "" : "disabled-link")">Play</a>
                 </td>
+            </tr>
+        }
+
+        @* Afficher les placeholders Team Waiting *@
+        @{
+            int totalTeamsNeeded = 8;
+            int currentTeams = Model.SelectMany(f => new[] { f.TeamAId, f.TeamBId }).Distinct().Count();
+            int waitingSlots = totalTeamsNeeded - currentTeams;
+        }
+
+        @for (int i = 0; i < waitingSlots; i += 2)
+        {
+            <tr>
+                <td>Team @((currentTeams + i) + 1) Waiting</td>
+                <td>-</td>
+                <td>Team @((currentTeams + i) + 2) Waiting</td>
+                <td>Waiting</td>
+                <td>-</td>
+                <td>-</td>
             </tr>
         }
     </tbody>
 </table>
 
+@if (!(bool)ViewBag.CanSimulate)
+{
+    <p class="text-warning">Waiting for all 8 teams to be added before matches can be played or simulated.</p>
+}

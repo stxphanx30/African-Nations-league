@@ -20,7 +20,7 @@ namespace African_Nations_league.Models
         public int ScoreB { get; set; } = 0;
 
         public string Status { get; set; } = "Scheduled"; // Scheduled, Playing, Finished
-
+        public string Phase { get; set; } // <--- Ajouter ceci
         public List<GoalEvent> Events { get; set; } = new List<GoalEvent>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
