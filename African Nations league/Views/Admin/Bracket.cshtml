@@ -3,100 +3,179 @@
     ViewData["Title"] = "Bracket - Road to Final";
 }
 
-@* /* Styles (identiques que précédemment, inchangés) */ *@
 <style>
     :root {
         --caf-gold: #f3c24b;
-        --caf-dark: #126035;
+        --caf-dark: #0f5a3f;
+        --bg: #0e4b33;
     }
 
+    /* Outer */
     .bracket-wrap {
         padding: 28px;
-        background: #126035;
+        background: linear-gradient(180deg, #0f5a3f 0%, #0b3f2b 100%);
         border-radius: 12px;
+        color: #fff;
     }
 
+    /* Title */
     .road-title {
         text-align: center;
-        font-weight: 800;
-        font-size: 1.6rem;
-        color: var(--caf-dark);
+        font-weight: 900;
+        font-size: 1.8rem;
+        color: var(--caf-gold);
         margin-bottom: 18px;
+        letter-spacing: 1px;
     }
 
-    .bracket {
-        display: flex;
-        gap: 18px;
-        align-items: flex-start;
-        justify-content: center;
+    /* Grid layout: 5 columns (left quarters, left semi, center cup, right semi, right quarters)
+       and 7 rows for vertical alignment so we can place matches in desired pattern */
+    .bracket-grid {
+        display: grid;
+        grid-template-columns: 1fr 0.9fr 220px 0.9fr 1fr;
+        grid-template-rows: repeat(7, auto);
+        gap: 12px 24px;
+        align-items: start;
     }
 
-    .col {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        min-width: 230px;
-    }
-
+    /* Boxes */
     .match {
-        background: #fff;
+        background: rgba(255,255,255,0.95);
+        color: #111;
         border-radius: 10px;
         padding: 8px 10px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-        border: 1px solid rgba(0,0,0,0.04);
+        min-width: 200px;
+        box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+        border: 1px solid rgba(0,0,0,0.06);
     }
 
+        .match.small {
+            min-width: 180px;
+            padding: 6px
+        }
+
+    /* Team row */
     .team {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 6px 2px;
+        padding: 4px 0;
     }
 
     .flag {
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         object-fit: cover;
-        border: 1px solid rgba(0,0,0,0.06);
+        border: 2px solid rgba(0,0,0,0.06);
     }
 
     .team-name {
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 0.95rem;
     }
 
     .score {
         margin-left: auto;
-        font-weight: 700;
-        color: #222;
+        font-weight: 800;
+        font-size: 1rem;
     }
 
+    /* Cup area */
+    .cup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        grid-row: 3 / span 3;
+        text-align: center;
+    }
+
+        .cup img {
+            width: 92px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .cup .final-title {
+            font-weight: 800;
+            color: var(--caf-gold);
+            margin-bottom: 6px;
+        }
+
+    /* Winner highlight */
     .winner {
         background: linear-gradient(90deg,#fff9ec,#fff5d6);
         border: 1px solid #f3d48b;
     }
 
-    .cup {
-        width: 160px;
-        text-align: center;
-        padding: 6px;
+    /* Grid placements (explicit) */
+    /* Left top quarter (quarter 0) */
+    .q0 {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    /* Left bottom quarter (quarter 1) */
+    .q1 {
+        grid-column: 1;
+        grid-row: 5;
     }
 
-        .cup img {
-            width: 86px;
-            display: block;
-            margin: 0 auto 6px;
-        }
+    /* Left semi (connects winners of q0 & q1) */
+    .s0 {
+        grid-column: 2;
+        grid-row: 3;
+        align-self: center;
+    }
+
+    /* Cup/Final in center */
+    .center {
+        grid-column: 3;
+        grid-row: 3;
+    }
+
+    /* Right semi */
+    .s1 {
+        grid-column: 4;
+        grid-row: 3;
+        align-self: center;
+    }
+
+    /* Right top quarter (quarter 2) */
+    .q2 {
+        grid-column: 5;
+        grid-row: 1;
+    }
+    /* Right bottom quarter (quarter 3) */
+    .q3 {
+        grid-column: 5;
+        grid-row: 5;
+    }
+
+    /* small helper text */
+    .small-muted {
+        color: rgba(255,255,255,0.8);
+        font-size: 0.95rem;
+        text-align: center;
+        margin-top: 8px;
+    }
+
+    /* responsive */
     @@media (max-width:1000px) {
-        .bracket
+        .bracket-grid
 
     {
-        flex-direction: column;
-        align-items: stretch;
+        grid-template-columns: 1fr;
+        grid-template-rows: none;
     }
 
-    .col {
-        min-width: unset;
+    .q0, .q1, .s0, .center, .s1, .q2, .q3 {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .cup img {
+        width: 72px;
     }
 
     }</style>
@@ -104,50 +183,64 @@
 <div class="container bracket-wrap mt-4">
     <div class="road-title">ROAD TO FINAL</div>
 
-    <div class="bracket">
-        <!-- LEFT: first 2 quarter matches -->
-        <div class="col" aria-label="left-quarts">
-            <div style="text-align:center;font-weight:600">Quarts (Left)</div>
-            @foreach (var m in Model.QuarterMatches.Take(2))
+    <div class="bracket-grid">
+        @* Left top quarter *@
+        <div class="q0">
+            <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts (Left Top)</div>
+            @if (Model.QuarterMatches != null && Model.QuarterMatches.Count > 0)
             {
-                var winnerA = m.ScoreA > m.ScoreB && (m.Status == "Finished" || m.Status == "Played");
-                var winnerB = m.ScoreB > m.ScoreA && (m.Status == "Finished" || m.Status == "Played");
-                <div class="match @(winnerA ? "winner" : winnerB ? "winner" : "")">
-                    <div class="team">
-                        @if (!string.IsNullOrEmpty(m.TeamAFlag))
-                        {
-                            <img src="@m.TeamAFlag" class="flag" />
-                        }
-                        <div class="team-name">@m.TeamAName</div>
-                        <div class="score">@m.ScoreA</div>
+                var m = Model.QuarterMatches.ElementAtOrDefault(0);
+                if (m != null)
+                {
+                    var wA = (m.ScoreA > m.ScoreB) && (m.Status == "Finished" || m.Status == "Played");
+                    var wB = (m.ScoreB > m.ScoreA) && (m.Status == "Finished" || m.Status == "Played");
+                    <div class="match @(wA ? "winner" : wB ? "winner" : "")">
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                            {
+                                <img src="@m.TeamAFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamAName) ? m.TeamAName : "Team A waiting")</div>
+                            <div class="score">@m.ScoreA</div>
+                        </div>
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                            {
+                                <img src="@m.TeamBFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamBName) ? m.TeamBName : "Team B waiting")</div>
+                            <div class="score">@m.ScoreB</div>
+                        </div>
                     </div>
-                    <div class="team">
-                        @if (!string.IsNullOrEmpty(m.TeamBFlag))
-                        {
-                            <img src="@m.TeamBFlag" class="flag" />
-                        }
-                        <div class="team-name">@m.TeamBName</div>
-                        <div class="score">@m.ScoreB</div>
-                    </div>
-                </div>
+                }
+                else
+                {
+
+                    <div class="match small">Waiting for match</div>
+                }
+            }
+            else
+            {
+
+                <div class="match small">Waiting for match</div>
             }
         </div>
 
-        <!-- LEFT SEMI (first semi) -->
-        <div class="col" style="align-items:center;">
-            <div style="text-align:center;font-weight:600">Demi (Left)</div>
-            @if (Model.SemiMatches.Count >= 1)
+        @* Left semi *@
+        <div class="s0">
+            <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Demi (Left)</div>
+            @if (Model.SemiMatches != null && Model.SemiMatches.Count >= 1)
             {
                 var m = Model.SemiMatches[0];
-                var winnerA = m.ScoreA > m.ScoreB && (m.Status == "Finished" || m.Status == "Played");
-                var winnerB = m.ScoreB > m.ScoreA && (m.Status == "Finished" || m.Status == "Played");
-                <div class="match" style="width:260px;">
+                var wA = (m.ScoreA > m.ScoreB) && (m.Status == "Finished" || m.Status == "Played");
+                var wB = (m.ScoreB > m.ScoreA) && (m.Status == "Finished" || m.Status == "Played");
+                <div class="match @(wA ? "winner" : wB ? "winner" : "")">
                     <div class="team">
                         @if (!string.IsNullOrEmpty(m.TeamAFlag))
                         {
                             <img src="@m.TeamAFlag" class="flag" />
                         }
-                        <div class="team-name">@m.TeamAName</div>
+                        <div class="team-name">@(!string.IsNullOrEmpty(m.TeamAName) ? m.TeamAName : "Waiting")</div>
                         <div class="score">@m.ScoreA</div>
                     </div>
                     <div class="team">
@@ -155,7 +248,7 @@
                         {
                             <img src="@m.TeamBFlag" class="flag" />
                         }
-                        <div class="team-name">@m.TeamBName</div>
+                        <div class="team-name">@(!string.IsNullOrEmpty(m.TeamBName) ? m.TeamBName : "Waiting")</div>
                         <div class="score">@m.ScoreB</div>
                     </div>
                 </div>
@@ -163,25 +256,25 @@
             else
             {
 
-                <div class="match" style="width:260px;"><div class="team">Waiting for semi</div></div>
+                <div class="match small">Waiting for semi</div>
             }
         </div>
 
-        <!-- CUP / FINAL center -->
-        <div class="cup">
-            <img src="/Images/solid_color_003366_dark_blue_background_template_square_sticker-r286e768c2b804342bb4172e8c2653c26_v9wf3_8byvr_307.png" alt="cup" />
-            <div style="font-weight:700;color:var(--caf-dark)">Finale</div>
+        @* Center: Cup/Final *@
+        <div class="center cup">
+            <img src="/Images/cup.png" alt="cup" onerror="this.src='/Images/solid_color_003366_dark_blue_background_template_square_sticker-r286e768c2b804342bb4172e8c2653c26_v9wf3_8byvr_307.png'" />
+            <div class="final-title">FINALE</div>
 
             @if (Model.FinalMatch != null)
             {
                 var fm = Model.FinalMatch;
-                <div class="final-card match" style="margin-top:8px;">
+                <div class="match" style="width:220px">
                     <div class="team">
                         @if (!string.IsNullOrEmpty(fm.TeamAFlag))
                         {
                             <img src="@fm.TeamAFlag" class="flag" />
                         }
-                        <div class="team-name">@fm.TeamAName</div>
+                        <div class="team-name">@(!string.IsNullOrEmpty(fm.TeamAName) ? fm.TeamAName : "Waiting")</div>
                         <div class="score">@fm.ScoreA</div>
                     </div>
                     <div class="team">
@@ -189,36 +282,37 @@
                         {
                             <img src="@fm.TeamBFlag" class="flag" />
                         }
-                        <div class="team-name">@fm.TeamBName</div>
+                        <div class="team-name">@(!string.IsNullOrEmpty(fm.TeamBName) ? fm.TeamBName : "Waiting")</div>
                         <div class="score">@fm.ScoreB</div>
                     </div>
                 </div>
+
+                @if (!string.IsNullOrEmpty(Model.Champion))
+                {
+                    <div style="margin-top:8px;font-weight:800;color:var(--caf-gold)">Champion: @Model.Champion</div>
+                }
             }
             else
             {
-
-                <div class="small-muted mt-2">Finale non générée</div>
-            }
-
-            @if (!string.IsNullOrEmpty(Model.Champion))
-            {
-                <div style="margin-top:8px;font-weight:700;color:var(--caf-dark)">Champion: @Model.Champion</div>
+                <div class="small-muted">Finale non générée</div>
             }
         </div>
 
-        <!-- RIGHT SEMI (second semi) -->
-        <div class="col" style="align-items:center;">
-            <div style="text-align:center;font-weight:600">Demi (Right)</div>
-            @if (Model.SemiMatches.Count >= 2)
+        @* Right semi *@
+        <div class="s1">
+            <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Demi (Right)</div>
+            @if (Model.SemiMatches != null && Model.SemiMatches.Count >= 2)
             {
                 var m = Model.SemiMatches[1];
-                <div class="match" style="width:260px;">
+                var wA = (m.ScoreA > m.ScoreB) && (m.Status == "Finished" || m.Status == "Played");
+                var wB = (m.ScoreB > m.ScoreA) && (m.Status == "Finished" || m.Status == "Played");
+                <div class="match @(wA ? "winner" : wB ? "winner" : "")">
                     <div class="team">
                         @if (!string.IsNullOrEmpty(m.TeamAFlag))
                         {
                             <img src="@m.TeamAFlag" class="flag" />
                         }
-                        <div class="team-name">@m.TeamAName</div>
+                        <div class="team-name">@(!string.IsNullOrEmpty(m.TeamAName) ? m.TeamAName : "Waiting")</div>
                         <div class="score">@m.ScoreA</div>
                     </div>
                     <div class="team">
@@ -226,7 +320,7 @@
                         {
                             <img src="@m.TeamBFlag" class="flag" />
                         }
-                        <div class="team-name">@m.TeamBName</div>
+                        <div class="team-name">@(!string.IsNullOrEmpty(m.TeamBName) ? m.TeamBName : "Waiting")</div>
                         <div class="score">@m.ScoreB</div>
                     </div>
                 </div>
@@ -234,42 +328,144 @@
             else
             {
 
-                <div class="match" style="width:260px;"><div class="team">Waiting for semi</div></div>
+                <div class="match small">Waiting for semi</div>
             }
         </div>
 
-        <!-- RIGHT: next 2 quarter matches -->
-        <div class="col" aria-label="right-quarts">
-            <div style="text-align:center;font-weight:600">Quarts (Right)</div>
-            @foreach (var m in Model.QuarterMatches.Skip(2).Take(2))
+        @* Right top quarter (quarter 2) *@
+        <div class="q2">
+            <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts (Right Top)</div>
+            @if (Model.QuarterMatches != null && Model.QuarterMatches.Count > 2)
             {
-                var winnerA = m.ScoreA > m.ScoreB && (m.Status == "Finished" || m.Status == "Played");
-                var winnerB = m.ScoreB > m.ScoreA && (m.Status == "Finished" || m.Status == "Played");
-                <div class="match @(winnerA ? "winner" : winnerB ? "winner" : "")">
-                    <div class="team">
-                        @if (!string.IsNullOrEmpty(m.TeamAFlag))
-                        {
-                            <img src="@m.TeamAFlag" class="flag" />
-                        }
-                        <div class="team-name">@m.TeamAName</div>
-                        <div class="score">@m.ScoreA</div>
+                var m = Model.QuarterMatches.ElementAtOrDefault(2);
+                if (m != null)
+                {
+                    var wA = (m.ScoreA > m.ScoreB) && (m.Status == "Finished" || m.Status == "Played");
+                    var wB = (m.ScoreB > m.ScoreA) && (m.Status == "Finished" || m.Status == "Played");
+                    <div class="match @(wA ? "winner" : wB ? "winner" : "")">
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                            {
+                                <img src="@m.TeamAFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamAName) ? m.TeamAName : "Team A waiting")</div>
+                            <div class="score">@m.ScoreA</div>
+                        </div>
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                            {
+                                <img src="@m.TeamBFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamBName) ? m.TeamBName : "Team B waiting")</div>
+                            <div class="score">@m.ScoreB</div>
+                        </div>
                     </div>
-                    <div class="team">
-                        @if (!string.IsNullOrEmpty(m.TeamBFlag))
-                        {
-                            <img src="@m.TeamBFlag" class="flag" />
-                        }
-                        <div class="team-name">@m.TeamBName</div>
-                        <div class="score">@m.ScoreB</div>
+                }
+                else
+                {
+
+                    <div class="match small">Waiting for match</div>
+                }
+            }
+            else
+            {
+
+                <div class="match small">Waiting for match</div>
+            }
+        </div>
+
+        @* Left bottom quarter (quarter 1) *@
+        <div class="q1">
+            <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts (Left Bottom)</div>
+            @if (Model.QuarterMatches != null && Model.QuarterMatches.Count > 1)
+            {
+                var m = Model.QuarterMatches.ElementAtOrDefault(1);
+                if (m != null)
+                {
+                    var wA = (m.ScoreA > m.ScoreB) && (m.Status == "Finished" || m.Status == "Played");
+                    var wB = (m.ScoreB > m.ScoreA) && (m.Status == "Finished" || m.Status == "Played");
+                    <div class="match @(wA ? "winner" : wB ? "winner" : "")">
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                            {
+                                <img src="@m.TeamAFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamAName) ? m.TeamAName : "Team A waiting")</div>
+                            <div class="score">@m.ScoreA</div>
+                        </div>
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                            {
+                                <img src="@m.TeamBFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamBName) ? m.TeamBName : "Team B waiting")</div>
+                            <div class="score">@m.ScoreB</div>
+                        </div>
                     </div>
-                </div>
+                }
+                else
+                {
+
+                    <div class="match small">Waiting for match</div>
+                }
+            }
+            else
+            {
+
+                <div class="match small">Waiting for match</div>
+            }
+        </div>
+
+        @* Right bottom quarter (quarter 3) *@
+        <div class="q3">
+            <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts (Right Bottom)</div>
+            @if (Model.QuarterMatches != null && Model.QuarterMatches.Count > 3)
+            {
+                var m = Model.QuarterMatches.ElementAtOrDefault(3);
+                if (m != null)
+                {
+                    var wA = (m.ScoreA > m.ScoreB) && (m.Status == "Finished" || m.Status == "Played");
+                    var wB = (m.ScoreB > m.ScoreA) && (m.Status == "Finished" || m.Status == "Played");
+                    <div class="match @(wA ? "winner" : wB ? "winner" : "")">
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                            {
+                                <img src="@m.TeamAFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamAName) ? m.TeamAName : "Team A waiting")</div>
+                            <div class="score">@m.ScoreA</div>
+                        </div>
+                        <div class="team">
+                            @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                            {
+                                <img src="@m.TeamBFlag" class="flag" />
+                            }
+                            <div class="team-name">@(!string.IsNullOrEmpty(m.TeamBName) ? m.TeamBName : "Team B waiting")</div>
+                            <div class="score">@m.ScoreB</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+
+                    <div class="match small">Waiting for match</div>
+                }
+            }
+            else
+            {
+
+                <div class="match small">Waiting for match</div>
             }
         </div>
 
     </div>
+
+    <div style="text-align:center;margin-top:14px;color:rgba(255,255,255,0.85)">
+        <small>Les drapeaux proviennent des champs TeamAFlag / TeamBFlag — si un drapeau ne s'affiche pas, vérifie que la propriété existe dans Fixture et que l'URL est correcte.</small>
+    </div>
 </div>
 
 <script>
-    // optional: auto-refresh (comment out if undesired)
-    setTimeout(function(){ if(navigator.onLine) location.reload(); }, 15000);
+    // optional auto-refresh every 15s so bracket updates after simulate/play
+    setTimeout(function(){ if (navigator.onLine) location.reload(); }, 15000);
 </script>
