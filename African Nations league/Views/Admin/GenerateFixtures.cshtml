@@ -9,76 +9,105 @@
         opacity: 0.5;
         cursor: default;
     }
+
+    .phase-header {
+        background-color: #f0f0f0;
+        padding: 8px;
+        border-radius: 6px;
+        margin-top: 20px;
+    }
 </style>
+<div class="row">
+    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
+    <div class="col-9">
+        <div class="d-flex align-items-center mb-3">
+            <h2 class="mb-0">Fixtures</h2>
 
-<h2>Fixtures</h2>
+            @* Reset button - only visible to admins (we assume controller returns IsAdmin in ViewBag if you want) *@
+            <form asp-controller="Admin" asp-action="ResetFixtures" method="post" class="ms-3 reset-btn"
+                  onsubmit="return confirm('Are you sure you want to delete all fixtures and reset the tournament? This cannot be undone.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-danger">Reset Tournament</button>
+            </form>
+        </div>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Team A</th>
-            <th>Score</th>
-            <th>Team B</th>
-            <th>Status</th>
-            <th>Events</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var f in Model)
-        {
-            <tr>
-                <td>@f.TeamAName</td>
-                <td>@f.ScoreA - @f.ScoreB</td>
-                <td>@f.TeamBName</td>
-                <td>@f.Status</td>
-                <td>
-                    @if (f.Events != null && f.Events.Count > 0)
-                    {
-                        <ul style="list-style:none;padding-left:0;margin-bottom:0;">
-                            @foreach (var e in f.Events.OrderBy(ev => ev.Minute))
-                            {
-                                <li>@($"{e.Minute}' - {e.PlayerName} ({e.TeamName})")</li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <span>—</span>
-                    }
-                </td>
-                <td>
-                    <a asp-action="SimulateMatch" asp-route-fixtureId="@f.Id"
-                       class="btn btn-sm btn-primary @(ViewBag.CanSimulate ? "" : "disabled-link")">Simulate</a>
-
-                    <a asp-action="PlayMatch" asp-route-id="@f.Id"
-                       class="btn btn-sm btn-success @(ViewBag.CanSimulate ? "" : "disabled-link")">Play</a>
-                </td>
-            </tr>
-        }
-
-        @* Afficher les placeholders Team Waiting *@
-        @{
-            int totalTeamsNeeded = 8;
-            int currentTeams = Model.SelectMany(f => new[] { f.TeamAId, f.TeamBId }).Distinct().Count();
-            int waitingSlots = totalTeamsNeeded - currentTeams;
-        }
-
-        @for (int i = 0; i < waitingSlots; i += 2)
-        {
-            <tr>
-                <td>Team @((currentTeams + i) + 1) Waiting</td>
-                <td>-</td>
-                <td>Team @((currentTeams + i) + 2) Waiting</td>
-                <td>Waiting</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-@if (!(bool)ViewBag.CanSimulate)
-{
-    <p class="text-warning">Waiting for all 8 teams to be added before matches can be played or simulated.</p>
+@{
+    // Utilise exactement les mêmes labels que le controller
+    var phases = new[] { "Quarts de finale", "Demi-finales", "Finale" };
 }
+
+@foreach (var phase in phases)
+{
+    var fixturesInPhase = Model.Where(f => string.Equals(f.Phase ?? "Quarts de finale", phase, System.StringComparison.OrdinalIgnoreCase)).ToList();
+    if (fixturesInPhase.Any())
+    {
+        <h3 class="phase-header">@phase</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Team A</th>
+                    <th>Score</th>
+                    <th>Team B</th>
+                    <th>Status</th>
+                    <th>Events</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in fixturesInPhase)
+                {
+                    <tr>
+                        <td>@f.TeamAName</td>
+                        <td>@f.ScoreA - @f.ScoreB</td>
+                        <td>@f.TeamBName</td>
+                        <td>@f.Status</td>
+                        <td>
+                            @if (f.Events != null && f.Events.Count > 0)
+                            {
+                                <ul style="list-style:none;padding-left:0;margin-bottom:0;">
+                                    @foreach (var e in f.Events.OrderBy(ev => ev.Minute))
+                                    {
+                                        <li>@($"{e.Minute}' - {e.PlayerName} ({e.TeamName})")</li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                        <td>
+                            @* Simulate: only clickable when not finished *@
+                            @if (f.Status == "Finished")
+                            {
+                                <button class="btn btn-sm btn-secondary me-1" disabled>Simulated</button>
+                                <button class="btn btn-sm btn-success" disabled>Played</button>
+                            }
+                            else
+                            {
+                                <form asp-action="SimulateMatch" method="post" asp-route-fixtureId="@f.Id" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-primary me-1">Simulate</button>
+                                </form>
+                                <a asp-action="PlayMatch" asp-route-id="@f.Id" class="btn btn-sm btn-success">Play</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@{
+    var finalMatch = Model.FirstOrDefault(f => string.Equals(f.Phase, "Finale", System.StringComparison.OrdinalIgnoreCase) && f.Status == "Finished");
+    if (finalMatch != null)
+    {
+        var champion = finalMatch.ScoreA > finalMatch.ScoreB ? finalMatch.TeamAName : finalMatch.TeamBName;
+        <div class="alert alert-success text-center mt-4">
+            🏆 <strong>Champion:</strong> @champion 🏆
+        </div>
+    }
+}
+</div>
+</div>

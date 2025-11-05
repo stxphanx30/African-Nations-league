@@ -1,4 +1,5 @@
-﻿using African_Nations_league.Models;
+﻿
+using African_Nations_league.Models;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -248,12 +249,16 @@ namespace African_Nations_league.Services
             return existingFixtures;
         }
         public async Task EnsureIndexesAsync()
-{
-    var indexKeys = Builders<Teams>.IndexKeys.Ascending(t => t.TeamName);
-    var indexModel = new CreateIndexModel<Teams>(indexKeys, new CreateIndexOptions { Unique = true, Name = "ux_teamname" });
-    await _teams.Indexes.CreateOneAsync(indexModel);
-}
+        {
+            var indexKeys = Builders<Teams>.IndexKeys.Ascending(t => t.TeamName);
+            var indexModel = new CreateIndexModel<Teams>(indexKeys, new CreateIndexOptions { Unique = true, Name = "ux_teamname" });
+            await _teams.Indexes.CreateOneAsync(indexModel);
+        }
+        // Delete every fixture (reset tournament)
+        public async Task DeleteAllFixturesAsync()
+        {
+            await _fixturesCollection.DeleteManyAsync(_ => true);
+        }
 
-       
     }
 }

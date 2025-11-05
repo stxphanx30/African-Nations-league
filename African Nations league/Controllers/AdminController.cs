@@ -211,7 +211,7 @@ namespace African_Nations_league.Controllers
                 return NotFound("Fixture ID not provided");
 
             var fixture = await _mongo.GetFixtureByIdAsync(fixtureId);
-           
+
 
             fixture.Events.Clear(); // reset events
             fixture.ScoreA = 0;
@@ -311,10 +311,9 @@ namespace African_Nations_league.Controllers
         {
             if (!IsAdmin()) return RedirectToAction("AccessDenied");
 
-            // 1️⃣ Récupérer toutes les équipes (Teams + Users)
+            // 1. Récupérer teams + users (merge)
             var teams = await _mongo.GetAllTeamsAsync();
             var users = await _mongo.GetAllUsersAsync();
-
             foreach (var u in users)
             {
                 if (!string.IsNullOrEmpty(u.TeamId) && !teams.Any(t => t.TeamId == u.TeamId))
@@ -331,54 +330,173 @@ namespace African_Nations_league.Controllers
                 }
             }
 
-            // 2️⃣ Récupérer toutes les fixtures existantes
+            // 2. toutes les fixtures existantes
             var fixtures = await _mongo.GetAllFixturesAsync();
 
-            var existingTeamIds = teams.Select(t => t.Id).ToList();
+            // 3. Supprimer fixtures qui pointent vers des teams non-existantes
+            var existingTeamIds = teams.Select(t => t.Id).ToHashSet();
+            var toDelete = fixtures.Where(f =>
+                (!string.IsNullOrEmpty(f.TeamAId) && !existingTeamIds.Contains(f.TeamAId)) ||
+                (!string.IsNullOrEmpty(f.TeamBId) && !existingTeamIds.Contains(f.TeamBId))
+            ).ToList();
 
-            // 3️⃣ Supprimer les fixtures qui contiennent des équipes qui n'existent plus
-            foreach (var f in fixtures)
-            {
-                if (!existingTeamIds.Contains(f.TeamAId) || !existingTeamIds.Contains(f.TeamBId))
-                {
-                    await _mongo.DeleteFixtureByIdAsync(f.Id);
-                }
-            }
+            foreach (var d in toDelete) await _mongo.DeleteFixtureByIdAsync(d.Id);
 
-            // 4️⃣ Regénérer des fixtures pour les équipes manquantes
-            fixtures = await _mongo.GetAllFixturesAsync(); // reload après suppression
-            var usedTeamIds = fixtures.SelectMany(f => new[] { f.TeamAId, f.TeamBId }).Distinct().ToList();
-            var missingTeams = teams.Where(t => !usedTeamIds.Contains(t.Id)).ToList();
+            // reload fixtures après suppression
+            fixtures = await _mongo.GetAllFixturesAsync();
 
-            if (missingTeams.Count >= 2)
+            // 4. Ensure quarter finals exist (pairs). If none present, create quarts from scratch
+            var quarterPhase = "Quarts de finale";
+            var quarterFixtures = fixtures.Where(f => string.IsNullOrEmpty(f.Phase) || string.Equals(f.Phase, quarterPhase, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!quarterFixtures.Any())
             {
                 var rnd = new Random();
-                var shuffled = missingTeams.OrderBy(x => rnd.Next()).ToList();
-
-                var newFixtures = new List<Fixture>();
-                for (int i = 0; i < shuffled.Count - 1; i += 2)
+                var shuffled = teams.OrderBy(_ => rnd.Next()).ToList();
+                var newQuarts = new List<Fixture>();
+                for (int i = 0; i + 1 < shuffled.Count; i += 2)
                 {
-                    newFixtures.Add(new Fixture
+                    newQuarts.Add(new Fixture
                     {
                         TeamAId = shuffled[i].Id,
                         TeamAName = shuffled[i].TeamName,
                         TeamBId = shuffled[i + 1].Id,
-                        TeamBName = shuffled[i + 1].TeamName
+                        TeamBName = shuffled[i + 1].TeamName,
+                        Phase = quarterPhase,
+                        Status = "Scheduled"
                     });
                 }
-
-                if (newFixtures.Count > 0)
-                    await _mongo.InsertManyFixturesAsync(newFixtures);
+                if (newQuarts.Count > 0) await _mongo.InsertManyFixturesAsync(newQuarts);
             }
 
-            // 5️⃣ Recharger toutes les fixtures pour la vue
+            // reload fixtures
             fixtures = await _mongo.GetAllFixturesAsync();
 
-            // 6️⃣ Vérifier si toutes les équipes sont présentes pour activer les boutons
+            // 5. Générer Demi-finales automatiquement si tous les quarts sont finis
+            await EnsureNextPhaseAsync("Quarts de finale", "Demi-finales", fixtures, teams);
+
+            // reload fixtures (demis maybe created)
+            fixtures = await _mongo.GetAllFixturesAsync();
+
+            // 6. Générer Finale si demi-finales sont finis
+            await EnsureNextPhaseAsync("Demi-finales", "Finale", fixtures, teams);
+
+            // reload fixtures (final maybe created)
+            fixtures = await _mongo.GetAllFixturesAsync();
+
+            // 7. ViewBag to enable simulate only when we have at least 8 teams (UX)
             ViewBag.CanSimulate = teams.Count >= 8;
 
-            return View(fixtures);
+            // 8. return ordered fixtures (order by mentioned phase order)
+            var phaseOrder = new[] { "Quarts de finale", "Demi-finales", "Finale" };
+            var ordered = fixtures.OrderBy(f =>
+            {
+                if (string.IsNullOrEmpty(f.Phase)) return 0;
+                var idx = Array.IndexOf(phaseOrder, f.Phase);
+                return idx >= 0 ? idx : phaseOrder.Length;
+            }).ThenBy(f => f.CreatedAt).ToList();
+
+            return View(ordered);
         }
 
+        // helper : build next-phase fixtures from winners of previousPhase
+        private async Task EnsureNextPhaseAsync(string previousPhase, string nextPhase, List<Fixture> allFixtures, List<Teams> teams)
+        {
+            // winners from previousPhase (only finished)
+            var prevFinished = allFixtures.Where(f => string.Equals(f.Phase, previousPhase, StringComparison.OrdinalIgnoreCase) && f.Status == "Finished").ToList();
+
+            // if no finished matches in previous phase -> nothing to do
+            if (prevFinished.Count == 0) return;
+
+            // compute winners list in the order of prevFinished by CreatedAt (or other stable ordering)
+            var winners = new List<(string TeamId, string TeamName)>();
+            foreach (var f in prevFinished.OrderBy(f => f.CreatedAt))
+            {
+                string winnerId = null, winnerName = null;
+                if (f.ScoreA > f.ScoreB) { winnerId = f.TeamAId; winnerName = f.TeamAName; }
+                else if (f.ScoreB > f.ScoreA) { winnerId = f.TeamBId; winnerName = f.TeamBName; }
+                else
+                {
+                    // fallback tie-breaker: try event penalties, else random deterministic
+                    if (f.Events != null && f.Events.Any(e => e.PlayerName?.ToLower().Contains("penal") == true))
+                    {
+                        // crude: if an event mentions penalties, pick team with penalty goals recorded in events text (not ideal)
+                        // fallback random:
+                        var rnd = new Random();
+                        if (rnd.Next(0, 2) == 0) { winnerId = f.TeamAId; winnerName = f.TeamAName; }
+                        else { winnerId = f.TeamBId; winnerName = f.TeamBName; }
+                    }
+                    else
+                    {
+                        var rnd = new Random();
+                        if (rnd.Next(0, 2) == 0) { winnerId = f.TeamAId; winnerName = f.TeamAName; }
+                        else { winnerId = f.TeamBId; winnerName = f.TeamBName; }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(winnerId))
+                    winners.Add((winnerId, winnerName));
+            }
+
+            // expected number of fixtures in nextPhase = winners.Count / 2
+            var expectedCount = winners.Count / 2;
+            if (expectedCount == 0) return;
+
+            // existing nextPhase fixtures
+            var existingNext = allFixtures.Where(f => string.Equals(f.Phase, nextPhase, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            // if existingNext count matches expectedCount AND team-sets match -> nothing to do
+            bool needRecreate = false;
+            if (existingNext.Count != expectedCount) needRecreate = true;
+            else
+            {
+                var expectedPairs = new HashSet<string>();
+                for (int i = 0; i + 1 < winners.Count; i += 2)
+                    expectedPairs.Add(winners[i].TeamId + "|" + winners[i + 1].TeamId);
+
+                var existingPairs = new HashSet<string>(existingNext.Select(f => (f.TeamAId ?? "") + "|" + (f.TeamBId ?? "")));
+                if (!expectedPairs.SetEquals(existingPairs)) needRecreate = true;
+            }
+
+            if (!needRecreate) return;
+
+            // delete old nextPhase fixtures
+            foreach (var nf in existingNext) await _mongo.DeleteFixtureByIdAsync(nf.Id);
+
+            // create new nextPhase fixtures from winners sequentially
+            var newFixtures = new List<Fixture>();
+            for (int i = 0; i + 1 < winners.Count; i += 2)
+            {
+                newFixtures.Add(new Fixture
+                {
+                    TeamAId = winners[i].TeamId,
+                    TeamAName = winners[i].TeamName,
+                    TeamBId = winners[i + 1].TeamId,
+                    TeamBName = winners[i + 1].TeamName,
+                    Phase = nextPhase,
+                    Status = "Scheduled",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            if (newFixtures.Count > 0) await _mongo.InsertManyFixturesAsync(newFixtures);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetFixtures()
+        {
+            if (!IsAdmin()) return RedirectToAction("AccessDenied");
+
+            try
+            {
+                await _mongo.DeleteAllFixturesAsync();
+                TempData["Success"] = "All fixtures have been deleted. Tournament reset.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error while resetting fixtures: " + ex.Message;
+            }
+
+            return RedirectToAction(nameof(GenerateFixtures));
+        }
     }
 }
