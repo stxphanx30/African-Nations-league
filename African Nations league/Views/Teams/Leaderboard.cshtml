@@ -1,0 +1,46 @@
+﻿@model List<African_Nations_league.Models.LeaderboardEntry>
+@{
+    ViewData["Title"] = "Top Scorers";
+}
+        <h2>Top Scorers</h2>
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Team</th>
+                        <th>Player</th>
+                        <th>Goals</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Count; i++)
+                    {
+                        var item = Model[i];
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    @if (!string.IsNullOrEmpty(item.TeamFlag))
+                                    {
+                                        <img src="@item.TeamFlag" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
+                                    }
+                                    <span>@item.TeamName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    @if (!string.IsNullOrEmpty(item.PlayerPicture))
+                                    {
+                                        <img src="@item.PlayerPicture" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+                                    }
+                                    <span>@item.PlayerName</span>
+                                </div>
+                            </td>
+                            <td style="font-weight:700">@item.Goals</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+ 

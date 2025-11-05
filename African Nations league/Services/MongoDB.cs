@@ -82,6 +82,7 @@ namespace African_Nations_league.Services
 
             return fixtures;
         }
+
         public async Task<long> CountTeamsAsync()
         {
             return await _teams.CountDocumentsAsync(FilterDefinition<Teams>.Empty);
@@ -259,6 +260,105 @@ namespace African_Nations_league.Services
         {
             await _fixturesCollection.DeleteManyAsync(_ => true);
         }
+        // si pas déjà present
+// ... à l'intérieur de la classe MongoDbService ...
 
+// ... inside MongoDbService class
+
+public async Task<List<LeaderboardEntry>> GetLeaderboardAsync()
+    {
+        // 1) récupérer toutes les fixtures
+        var fixtures = await _fixturesCollection.Find(Builders<Fixture>.Filter.Empty).ToListAsync();
+
+        // 2) récupérer les teams (collection teams) et users (collection users)
+        var teams = await _teams.Find(Builders<Teams>.Filter.Empty).ToListAsync();
+        var users = await _users.Find(Builders<User>.Filter.Empty).ToListAsync();
+
+        // 3) construire un lookup teamName -> flag (merge teams + users)
+        var teamFlagByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var t in teams)
+        {
+            if (!string.IsNullOrEmpty(t.TeamName) && !string.IsNullOrEmpty(t.FlagUrl))
+                teamFlagByName[t.TeamName] = t.FlagUrl;
+        }
+        foreach (var u in users)
+        {
+            if (!string.IsNullOrEmpty(u.TeamName) && !string.IsNullOrEmpty(u.TeamFlag))
+                teamFlagByName[u.TeamName] = u.TeamFlag;
+        }
+
+        // 4) build a player-picture lookup from teams and users squads (PlayerName -> ImagePath)
+        var playerPictureByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var t in teams)
+        {
+            if (t.Players == null) continue;
+            foreach (var p in t.Players)
+            {
+                if (string.IsNullOrEmpty(p?.PlayerName)) continue;
+                if (!string.IsNullOrEmpty(p.ImagePath))
+                    playerPictureByName[p.PlayerName] = p.ImagePath;
+            }
+        }
+
+        foreach (var u in users)
+        {
+            if (u.Squad == null) continue;
+            foreach (var p in u.Squad)
+            {
+                if (string.IsNullOrEmpty(p?.PlayerName)) continue;
+                if (!string.IsNullOrEmpty(p.ImagePath))
+                    playerPictureByName[p.PlayerName] = p.ImagePath;
+            }
+        }
+
+        // 5) Collect all goal events across fixtures, ignore penalty summary events (e.g. PlayerName == "Penalties" or contains "penal")
+        var goalEvents = new List<(string PlayerName, string TeamName)>();
+        foreach (var f in fixtures)
+        {
+            if (f?.Events == null) continue;
+            foreach (var e in f.Events)
+            {
+                if (e == null) continue;
+                var pn = e.PlayerName?.Trim();
+                var tn = e.TeamName?.Trim();
+                if (string.IsNullOrEmpty(pn) || string.IsNullOrEmpty(tn)) continue;
+                var low = pn.ToLowerInvariant();
+                if (low.Contains("penal") || low.Contains("penalties") || low.Contains("penalty")) continue;
+
+                // Only add if pn looks like a player (optionally: skip "Penalties", "Own Goal" etc.)
+                goalEvents.Add((PlayerName: pn, TeamName: tn));
+            }
+        }
+        var grouped = goalEvents
+            .GroupBy(g => new
+            {
+                PlayerKey = g.PlayerName?.ToLowerInvariant() ?? string.Empty,
+                TeamKey = g.TeamName?.ToLowerInvariant() ?? string.Empty
+            })
+            .Select(gr =>
+            {
+                var first = gr.First();
+                var playerNameOriginal = first.PlayerName;
+                var teamNameOriginal = first.TeamName;
+
+                teamFlagByName.TryGetValue(teamNameOriginal, out var flag);
+                playerPictureByName.TryGetValue(playerNameOriginal, out var pic);
+
+                return new LeaderboardEntry
+                {
+                    PlayerName = playerNameOriginal,
+                    TeamName = teamNameOriginal,
+                    TeamFlag = flag,
+                    PlayerPicture = pic,
+                    Goals = gr.Count()
+                };
+            })
+            .OrderByDescending(x => x.Goals)
+            .ThenBy(x => x.PlayerName)
+            .ToList();
+
+        return grouped;
     }
+}
 }

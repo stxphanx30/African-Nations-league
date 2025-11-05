@@ -191,12 +191,7 @@
     }
     /* optionally hide connectors via JS/CSS if desired */
     }</style>
-
-<div class="row">
-    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
-
-    <div class="col-9 bracket-col">
-        <div class="container bracket-wrap mt-4" id="bracketWrap">
+   <div class="container bracket-wrap mt-4" id="bracketWrap">
             <div class="road-title">ROAD TO FINAL</div>
 
             <!-- SVG overlay (positioned absolute inside .bracket-wrap) -->
@@ -463,8 +458,7 @@
                 <small>Les lignes connectent automatiquement les matchs (responsive). Si un drapeau n'apparaît pas, vérifie TeamAFlag/TeamBFlag dans la fixture.</small>
             </div>
         </div>
-    </div>
-</div>
+ 
 
 <script>
     (function(){
