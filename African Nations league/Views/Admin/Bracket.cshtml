@@ -1,0 +1,275 @@
+﻿@model African_Nations_league.Models.BracketViewModel
+@{
+    ViewData["Title"] = "Bracket - Road to Final";
+}
+
+@* /* Styles (identiques que précédemment, inchangés) */ *@
+<style>
+    :root {
+        --caf-gold: #f3c24b;
+        --caf-dark: #126035;
+    }
+
+    .bracket-wrap {
+        padding: 28px;
+        background: #126035;
+        border-radius: 12px;
+    }
+
+    .road-title {
+        text-align: center;
+        font-weight: 800;
+        font-size: 1.6rem;
+        color: var(--caf-dark);
+        margin-bottom: 18px;
+    }
+
+    .bracket {
+        display: flex;
+        gap: 18px;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .col {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 230px;
+    }
+
+    .match {
+        background: #fff;
+        border-radius: 10px;
+        padding: 8px 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .team {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 2px;
+    }
+
+    .flag {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .team-name {
+        font-weight: 600;
+    }
+
+    .score {
+        margin-left: auto;
+        font-weight: 700;
+        color: #222;
+    }
+
+    .winner {
+        background: linear-gradient(90deg,#fff9ec,#fff5d6);
+        border: 1px solid #f3d48b;
+    }
+
+    .cup {
+        width: 160px;
+        text-align: center;
+        padding: 6px;
+    }
+
+        .cup img {
+            width: 86px;
+            display: block;
+            margin: 0 auto 6px;
+        }
+    @@media (max-width:1000px) {
+        .bracket
+
+    {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .col {
+        min-width: unset;
+    }
+
+    }</style>
+
+<div class="container bracket-wrap mt-4">
+    <div class="road-title">ROAD TO FINAL</div>
+
+    <div class="bracket">
+        <!-- LEFT: first 2 quarter matches -->
+        <div class="col" aria-label="left-quarts">
+            <div style="text-align:center;font-weight:600">Quarts (Left)</div>
+            @foreach (var m in Model.QuarterMatches.Take(2))
+            {
+                var winnerA = m.ScoreA > m.ScoreB && (m.Status == "Finished" || m.Status == "Played");
+                var winnerB = m.ScoreB > m.ScoreA && (m.Status == "Finished" || m.Status == "Played");
+                <div class="match @(winnerA ? "winner" : winnerB ? "winner" : "")">
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                        {
+                            <img src="@m.TeamAFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamAName</div>
+                        <div class="score">@m.ScoreA</div>
+                    </div>
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                        {
+                            <img src="@m.TeamBFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamBName</div>
+                        <div class="score">@m.ScoreB</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- LEFT SEMI (first semi) -->
+        <div class="col" style="align-items:center;">
+            <div style="text-align:center;font-weight:600">Demi (Left)</div>
+            @if (Model.SemiMatches.Count >= 1)
+            {
+                var m = Model.SemiMatches[0];
+                var winnerA = m.ScoreA > m.ScoreB && (m.Status == "Finished" || m.Status == "Played");
+                var winnerB = m.ScoreB > m.ScoreA && (m.Status == "Finished" || m.Status == "Played");
+                <div class="match" style="width:260px;">
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                        {
+                            <img src="@m.TeamAFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamAName</div>
+                        <div class="score">@m.ScoreA</div>
+                    </div>
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                        {
+                            <img src="@m.TeamBFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamBName</div>
+                        <div class="score">@m.ScoreB</div>
+                    </div>
+                </div>
+            }
+            else
+            {
+
+                <div class="match" style="width:260px;"><div class="team">Waiting for semi</div></div>
+            }
+        </div>
+
+        <!-- CUP / FINAL center -->
+        <div class="cup">
+            <img src="/Images/solid_color_003366_dark_blue_background_template_square_sticker-r286e768c2b804342bb4172e8c2653c26_v9wf3_8byvr_307.png" alt="cup" />
+            <div style="font-weight:700;color:var(--caf-dark)">Finale</div>
+
+            @if (Model.FinalMatch != null)
+            {
+                var fm = Model.FinalMatch;
+                <div class="final-card match" style="margin-top:8px;">
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(fm.TeamAFlag))
+                        {
+                            <img src="@fm.TeamAFlag" class="flag" />
+                        }
+                        <div class="team-name">@fm.TeamAName</div>
+                        <div class="score">@fm.ScoreA</div>
+                    </div>
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(fm.TeamBFlag))
+                        {
+                            <img src="@fm.TeamBFlag" class="flag" />
+                        }
+                        <div class="team-name">@fm.TeamBName</div>
+                        <div class="score">@fm.ScoreB</div>
+                    </div>
+                </div>
+            }
+            else
+            {
+
+                <div class="small-muted mt-2">Finale non générée</div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Champion))
+            {
+                <div style="margin-top:8px;font-weight:700;color:var(--caf-dark)">Champion: @Model.Champion</div>
+            }
+        </div>
+
+        <!-- RIGHT SEMI (second semi) -->
+        <div class="col" style="align-items:center;">
+            <div style="text-align:center;font-weight:600">Demi (Right)</div>
+            @if (Model.SemiMatches.Count >= 2)
+            {
+                var m = Model.SemiMatches[1];
+                <div class="match" style="width:260px;">
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                        {
+                            <img src="@m.TeamAFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamAName</div>
+                        <div class="score">@m.ScoreA</div>
+                    </div>
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                        {
+                            <img src="@m.TeamBFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamBName</div>
+                        <div class="score">@m.ScoreB</div>
+                    </div>
+                </div>
+            }
+            else
+            {
+
+                <div class="match" style="width:260px;"><div class="team">Waiting for semi</div></div>
+            }
+        </div>
+
+        <!-- RIGHT: next 2 quarter matches -->
+        <div class="col" aria-label="right-quarts">
+            <div style="text-align:center;font-weight:600">Quarts (Right)</div>
+            @foreach (var m in Model.QuarterMatches.Skip(2).Take(2))
+            {
+                var winnerA = m.ScoreA > m.ScoreB && (m.Status == "Finished" || m.Status == "Played");
+                var winnerB = m.ScoreB > m.ScoreA && (m.Status == "Finished" || m.Status == "Played");
+                <div class="match @(winnerA ? "winner" : winnerB ? "winner" : "")">
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                        {
+                            <img src="@m.TeamAFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamAName</div>
+                        <div class="score">@m.ScoreA</div>
+                    </div>
+                    <div class="team">
+                        @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                        {
+                            <img src="@m.TeamBFlag" class="flag" />
+                        }
+                        <div class="team-name">@m.TeamBName</div>
+                        <div class="score">@m.ScoreB</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // optional: auto-refresh (comment out if undesired)
+    setTimeout(function(){ if(navigator.onLine) location.reload(); }, 15000);
+</script>

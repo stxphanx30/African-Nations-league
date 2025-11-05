@@ -4,7 +4,8 @@
         <li><a asp-controller="Admin" asp-action="Index">Dashboard</a></li>
         <li><a asp-controller="Admin" asp-action="Teams">Équipes</a></li>
         <li><a asp-controller="Admin" asp-action="Users">Users</a></li>
-        <li><a asp-controller="Admin" asp-action="GenerateFixtures">Games</a></li>
+        <li><a asp-controller="Admin" asp-action="GenerateFixtures">Fixtures</a></li>
+        <li><a asp-controller="Admin" asp-action="Bracket">Brackets</a></li>
         <li>
             <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
