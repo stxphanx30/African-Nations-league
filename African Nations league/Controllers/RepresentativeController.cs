@@ -13,6 +13,7 @@ namespace African_Nations_league.Controllers
         private readonly UserService _userService;
         private readonly MongoDbService _mongo;
         private readonly MatchService _matchService;
+        private readonly Random _rnd = new Random();
 
         public RepresentativeController(UserService userService, MongoDbService mongo, MatchService matchService)
         {
@@ -277,6 +278,316 @@ namespace African_Nations_league.Controllers
 
             return RedirectToAction("Login", "Auth");
         }
+        public async Task<IActionResult> GenerateFixtures()
+        {
+           
+
+            // 1. Récupérer teams + users (merge propre, distinct par Id)
+            var teamsFromCollection = await _mongo.GetAllTeamsAsync();
+            var users = await _mongo.GetAllUsersAsync();
+
+            var teamsFromUsers = new List<Teams>();
+            foreach (var u in users)
+            {
+                if (!string.IsNullOrEmpty(u.TeamId))
+                {
+                    teamsFromUsers.Add(new Teams
+                    {
+                        Id = u.TeamId,
+                        TeamId = u.TeamId,
+                        TeamName = u.TeamName,
+                        FlagUrl = u.TeamFlag,
+                        TeamRating = u.TeamRating,
+                        Players = u.Squad
+                    });
+                }
+            }
+
+            // Fusion et déduplication
+            var allTeams = teamsFromCollection
+                .Concat(teamsFromUsers)
+                .Where(t => !string.IsNullOrEmpty(t?.Id))
+                .GroupBy(t => t.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            // 2. toutes les fixtures existantes
+            var fixtures = await _mongo.GetAllFixturesAsync();
+
+            // 3. Supprimer fixtures qui pointent vers des teams non-existantes
+            //    MAIS ne pas supprimer celles qui pointent vers des placeholders WAITING_*
+            var existingTeamIds = allTeams.Select(t => t.Id).ToHashSet();
+            var toDelete = fixtures.Where(f =>
+                ((!string.IsNullOrEmpty(f.TeamAId) && !existingTeamIds.Contains(f.TeamAId) && !IsWaitingId(f.TeamAId)) ||
+                 (!string.IsNullOrEmpty(f.TeamBId) && !existingTeamIds.Contains(f.TeamBId) && !IsWaitingId(f.TeamBId)))
+            ).ToList();
+
+            foreach (var d in toDelete) await _mongo.DeleteFixtureByIdAsync(d.Id);
+
+            // reload fixtures après suppression
+            fixtures = await _mongo.GetAllFixturesAsync();
+
+            // --- Backfill flags for existing fixtures (safe, idempotent) ---
+            // map teams by id (key: Id) so we can quickly populate flags
+            var teamLookup = allTeams
+                .Where(t => !string.IsNullOrEmpty(t.Id))
+                .ToDictionary(t => t.Id, t => t, StringComparer.OrdinalIgnoreCase);
+
+            var fixturesToUpdate = new List<Fixture>();
+            foreach (var f in fixtures)
+            {
+                bool changed = false;
+
+                if (string.IsNullOrEmpty(f.TeamAFlag) && !string.IsNullOrEmpty(f.TeamAId) && teamLookup.TryGetValue(f.TeamAId, out var ta))
+                {
+                    f.TeamAFlag = ta.FlagUrl; // Teams.FlagUrl (may be null)
+                    changed = true;
+                }
+
+                if (string.IsNullOrEmpty(f.TeamBFlag) && !string.IsNullOrEmpty(f.TeamBId) && teamLookup.TryGetValue(f.TeamBId, out var tb))
+                {
+                    f.TeamBFlag = tb.FlagUrl;
+                    changed = true;
+                }
+
+                if (changed) fixturesToUpdate.Add(f);
+            }
+
+            if (fixturesToUpdate.Count > 0)
+            {
+                // update one-by-one to be conservative / idempotent
+                foreach (var uf in fixturesToUpdate)
+                {
+                    // Use your repository update — replace with your actual method.
+                    // If you have UpdateFixtureAsync implemented, this will work.
+                    // Otherwise use ReplaceOneAsync or UpdateOneAsync in your _mongo implementation.
+                    await _mongo.UpdateFixtureAsync(uf);
+                }
+
+                // reload fixtures after updates
+                fixtures = await _mongo.GetAllFixturesAsync();
+            }
+            // --- end backfill ---
+
+            // 4. Ensure quarter finals exist (exactement 4 fixtures -> 8 slots)
+            var quarterPhase = "Quarts de finale";
+            var quarterFixtures = fixtures.Where(f => string.Equals(f.Phase, quarterPhase, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (!quarterFixtures.Any())
+            {
+                // shuffle real teams
+                var rnd = new Random();
+                var shuffled = allTeams.OrderBy(_ => rnd.Next()).ToList();
+
+                // build bracket of length 8 with placeholders where il manque des équipes
+                var bracket8 = new List<Teams>();
+                for (int i = 0; i < 8; i++)
+                {
+                    if (i < shuffled.Count)
+                    {
+                        bracket8.Add(shuffled[i]);
+                    }
+                    else
+                    {
+                        bracket8.Add(new Teams
+                        {
+                            Id = $"WAITING_{i + 1}",
+                            TeamId = $"WAITING_{i + 1}",
+                            TeamName = "Waiting for team",
+                            FlagUrl = null,
+                            TeamRating = 0,
+                            Players = new List<Players>()
+                        });
+                    }
+                }
+
+                var newQuarts = new List<Fixture>();
+                for (int i = 0; i + 1 < bracket8.Count; i += 2)
+                {
+                    var a = bracket8[i];
+                    var b = bracket8[i + 1];
+
+                    newQuarts.Add(new Fixture
+                    {
+                        TeamAId = a.Id,
+                        TeamAName = a.TeamName,
+                        TeamAFlag = a.FlagUrl, // <-- set flag
+                        TeamBId = b.Id,
+                        TeamBName = b.TeamName,
+                        TeamBFlag = b.FlagUrl, // <-- set flag
+                        Phase = quarterPhase,
+                        Status = (IsWaitingId(a.Id) || IsWaitingId(b.Id)) ? "Waiting" : "Scheduled",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                if (newQuarts.Count > 0) await _mongo.InsertManyFixturesAsync(newQuarts);
+            }
+            else
+            {
+                // si des placeholders existent dans les quarts mais maintenant on a des équipes réelles,
+                // on veut remplacer automatiquement les placeholders par des vraies équipes disponibles (optionnel).
+                // Ici on va recréer les quarts si il y a maintenant >=8 vraies teams (pour remplacer placeholders)
+                var quarterHasPlaceholder = quarterFixtures.Any(f => IsWaitingId(f.TeamAId) || IsWaitingId(f.TeamBId));
+                if (allTeams.Count >= 8 && quarterHasPlaceholder)
+                {
+                    // supprimer les quarts existants et recréer à partir des 8 premières vraies équipes
+                    foreach (var q in quarterFixtures) await _mongo.DeleteFixtureByIdAsync(q.Id);
+
+                    var rnd = new Random();
+                    var selected = allTeams.OrderBy(_ => rnd.Next()).Take(8).ToList();
+                    var newQuarts = new List<Fixture>();
+                    for (int i = 0; i + 1 < selected.Count; i += 2)
+                    {
+                        var A = selected[i];
+                        var B = selected[i + 1];
+
+                        newQuarts.Add(new Fixture
+                        {
+                            TeamAId = A.Id,
+                            TeamAName = A.TeamName,
+                            TeamAFlag = A.FlagUrl, // <-- set flag
+                            TeamBId = B.Id,
+                            TeamBName = B.TeamName,
+                            TeamBFlag = B.FlagUrl, // <-- set flag
+                            Phase = quarterPhase,
+                            Status = "Scheduled",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                    if (newQuarts.Count > 0) await _mongo.InsertManyFixturesAsync(newQuarts);
+                }
+            }
+
+            // reload fixtures
+            fixtures = await _mongo.GetAllFixturesAsync();
+
+            // 5. Générer Demi-finales automatiquement si tous les quarts sont finis ET complets (no placeholders)
+            await EnsureNextPhaseAsync("Quarts de finale", "Demi-finales", fixtures, allTeams);
+
+            // reload fixtures
+            fixtures = await _mongo.GetAllFixturesAsync();
+
+            // 6. Générer Finale si demi-finales sont finis
+            await EnsureNextPhaseAsync("Demi-finales", "Finale", fixtures, allTeams);
+
+            // reload fixtures
+            fixtures = await _mongo.GetAllFixturesAsync();
+
+            // 7. ViewBag.CanSimulate : only true when the 4 quarter fixtures exist and contain NO placeholders (i.e. 8 real teams)
+            quarterFixtures = fixtures.Where(f => string.Equals(f.Phase, quarterPhase, StringComparison.OrdinalIgnoreCase)).ToList();
+            bool quartersExist = quarterFixtures.Count == 4;
+            bool quartersHaveNoPlaceholders = quartersExist && quarterFixtures.All(f => !IsWaitingId(f.TeamAId) && !IsWaitingId(f.TeamBId));
+            ViewBag.CanSimulate = quartersHaveNoPlaceholders && allTeams.Count >= 8 && !HasIncompleteFixtures(fixtures);
+
+            // 8. return ordered fixtures
+            var phaseOrder = new[] { "Quarts de finale", "Demi-finales", "Finale" };
+            var ordered = fixtures.OrderBy(f =>
+            {
+                if (string.IsNullOrEmpty(f.Phase)) return phaseOrder.Length;
+                var idx = Array.IndexOf(phaseOrder, f.Phase);
+                return idx >= 0 ? idx : phaseOrder.Length;
+            }).ThenBy(f => f.CreatedAt).ToList();
+
+            return View(ordered);
+        }
+        private async Task EnsureNextPhaseAsync(string previousPhase, string nextPhase, List<Fixture> allFixtures, List<Teams> teams)
+        {
+            var prevPhaseFixtures = allFixtures.Where(f => string.Equals(f.Phase, previousPhase, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!prevPhaseFixtures.Any()) return;
+
+            // do not proceed if any fixture contains a placeholder
+            if (prevPhaseFixtures.Any(f => IsWaitingId(f.TeamAId) || IsWaitingId(f.TeamBId))) return;
+
+            // ensure all previous fixtures are complete (no missing team ids)
+            if (prevPhaseFixtures.Any(f => string.IsNullOrEmpty(f.TeamAId) || string.IsNullOrEmpty(f.TeamBId))) return;
+
+            // winners only if all previous phase fixtures are finished
+            var prevFinished = prevPhaseFixtures.Where(f => string.Equals(f.Status, "Finished", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (prevFinished.Count != prevPhaseFixtures.Count) return;
+
+            // compute winners
+            var winners = new List<(string TeamId, string TeamName)>();
+            foreach (var f in prevFinished.OrderBy(f => f.CreatedAt))
+            {
+                string winnerId = null, winnerName = null;
+                if (f.ScoreA > f.ScoreB) { winnerId = f.TeamAId; winnerName = f.TeamAName; }
+                else if (f.ScoreB > f.ScoreA) { winnerId = f.TeamBId; winnerName = f.TeamBName; }
+                else
+                {
+                    // deterministic fallback
+                    if (f.CreatedAt.Ticks % 2 == 0) { winnerId = f.TeamAId; winnerName = f.TeamAName; }
+                    else { winnerId = f.TeamBId; winnerName = f.TeamBName; }
+                }
+
+                if (!string.IsNullOrEmpty(winnerId))
+                    winners.Add((winnerId, winnerName));
+            }
+
+            var expectedCount = winners.Count / 2;
+            if (expectedCount == 0) return;
+
+            var existingNext = allFixtures.Where(f => string.Equals(f.Phase, nextPhase, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            bool needRecreate = false;
+            if (existingNext.Count != expectedCount) needRecreate = true;
+            else
+            {
+                var expectedPairs = new HashSet<string>();
+                for (int i = 0; i + 1 < winners.Count; i += 2)
+                    expectedPairs.Add(winners[i].TeamId + "|" + winners[i + 1].TeamId);
+
+                var existingPairs = new HashSet<string>(existingNext.Select(f => (f.TeamAId ?? "") + "|" + (f.TeamBId ?? "")));
+                if (!expectedPairs.SetEquals(existingPairs)) needRecreate = true;
+            }
+
+            if (!needRecreate) return;
+
+            // delete old next phase fixtures
+            foreach (var nf in existingNext) await _mongo.DeleteFixtureByIdAsync(nf.Id);
+
+            // create new nextPhase fixtures from winners sequentially
+            var newFixtures = new List<Fixture>();
+            for (int i = 0; i + 1 < winners.Count; i += 2)
+            {
+                newFixtures.Add(new Fixture
+                {
+                    TeamAId = winners[i].TeamId,
+                    TeamAName = winners[i].TeamName,
+                    TeamBId = winners[i + 1].TeamId,
+                    TeamBName = winners[i + 1].TeamName,
+                    Phase = nextPhase,
+                    Status = "Scheduled",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            if (newFixtures.Count > 0) await _mongo.InsertManyFixturesAsync(newFixtures);
+        }
+
+        // petits helpers déjà utilisés dans la vue
+        private bool HasIncompleteFixtures(IEnumerable<Fixture> fixtures)
+        {
+            // treat placeholder waiting ids as incomplete
+            return fixtures.Any(f => string.IsNullOrEmpty(f.TeamAId) || string.IsNullOrEmpty(f.TeamBId) || IsWaitingId(f.TeamAId) || IsWaitingId(f.TeamBId));
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetFixtures()
+        {
+            try
+            {
+                await _mongo.DeleteAllFixturesAsync();
+                TempData["Success"] = "All fixtures have been deleted. Tournament reset.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error while resetting fixtures: " + ex.Message;
+            }
+
+            return RedirectToAction(nameof(GenerateFixtures));
+        }
+
         public async Task<IActionResult> Bracket()
         {
 
@@ -419,7 +730,12 @@ namespace African_Nations_league.Controllers
 
             return View("Bracket", vm);
         }
+        private bool IsWaitingId(string id)
+        {
+            return !string.IsNullOrEmpty(id) && id.StartsWith("WAITING_", StringComparison.OrdinalIgnoreCase);
+        }
     }
+
 
     // small viewmodel for profile page
     public class RepresentativeProfileViewModel

@@ -1,0 +1,531 @@
+﻿@model List<African_Nations_league.Models.Fixture>
+@{
+    ViewData["Title"] = "Fixtures";
+    Layout = null;
+    bool canSimulate = ViewBag.CanSimulate ?? false;
+    bool canStart = ViewBag.CanStart ?? false;
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --caf-green: #126035;
+        --caf-gold: #f3c24b;
+        --muted: #6c757d;
+        --card-bg: #ffffff;
+        --page-bg: linear-gradient(180deg,#fbfdfb,#f7faf7);
+        --radius: 12px;
+        --shadow: 0 14px 36px rgba(12,20,30,0.06);
+        --max-width: 1200px;
+    }
+
+    html, body {
+        height: 100%;
+        margin: 0;
+        font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+        background: var(--page-bg);
+        color: #222;
+    }
+
+    /* GRID LAYOUT: left menu + main content */
+    .page-wrap {
+        max-width: var(--max-width);
+        margin: 18px auto;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
+    aside.menu-aside {
+        position: relative;
+    }
+
+    main.content {
+        min-width: 0;
+    }
+
+    .top-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .title {
+        font-weight: 900;
+        color: var(--caf-green);
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .info-note {
+        background: linear-gradient(90deg, rgba(243,194,75,0.06), rgba(18,96,53,0.03));
+        border: 1px solid rgba(18,96,53,0.06);
+        padding: 10px 12px;
+        border-radius: 10px;
+        color: #0b2b1f;
+        font-weight: 700;
+    }
+
+    .phase-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 22px;
+        margin-bottom: 8px;
+    }
+
+    .phase-title {
+        font-weight: 800;
+        color: var(--caf-green);
+        background: rgba(18,96,53,0.04);
+        padding: 8px 12px;
+        border-radius: 10px;
+    }
+
+    .phase-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 12px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    /* TABLE: keep native table layout for stable behaviour */
+    .fixtures-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        table-layout: fixed;
+    }
+
+        .fixtures-table thead th {
+            text-align: left;
+            font-weight: 800;
+            color: var(--caf-green);
+            padding: 10px;
+            font-size: 0.95rem;
+            border-bottom: 0;
+        }
+
+        .fixtures-table tbody tr {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.04);
+            transition: transform .12s, box-shadow .12s;
+        }
+
+            .fixtures-table tbody tr:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 18px 36px rgba(0,0,0,0.06);
+            }
+
+        .fixtures-table td {
+            padding: 12px;
+            vertical-align: middle;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border: none;
+            background-clip: padding-box; /* keeps rounded corners visible */
+        }
+
+        /* ensure rounded corners on first/last cells */
+        .fixtures-table tbody tr td:first-child {
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+        }
+
+        .fixtures-table tbody tr td:last-child {
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+    .team-cell {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .team-flag {
+        width: 44px;
+        height: 28px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,0.04);
+        flex-shrink: 0;
+    }
+
+    .team-name {
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .score-pill {
+        background: linear-gradient(180deg,#fff,#fff);
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 900;
+        border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .status-badge {
+        font-weight: 800;
+        color: var(--muted);
+    }
+
+    .events-list {
+        margin: 0;
+        padding-left: 0;
+        list-style: none;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+    .btn-sim {
+        background: linear-gradient(90deg,var(--caf-green), #0f7a4d);
+        color: #fff;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-weight: 800;
+    }
+
+    .btn-disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    /* MOBILE: stacked cards (keep table hidden) */
+    .fixture-card {
+        display: none;
+        border-radius: 12px;
+        padding: 12px;
+        background: var(--card-bg);
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(0,0,0,0.04);
+        margin-bottom: 12px;
+    }
+
+    .fixture-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .team-block {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .waiting {
+        color: var(--muted);
+        font-style: italic;
+    }
+
+    .tooltip-btn[disabled] {
+        position: relative;
+    }
+
+        .tooltip-btn[disabled]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+    /* RESPONSIVE: small screens stack aside above main (menu on top) */
+    @@media (max-width: 991.98px) {
+        .page-wrap
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    /* ensure aside is above main on small screens */
+    aside.menu-aside {
+        order: 1;
+    }
+
+    main.content {
+        order: 2;
+    }
+
+    }
+
+    @@media (max-width: 767.98px) {
+        .fixtures-table
+
+    {
+        display: none;
+    }
+
+    .fixture-card {
+        display: block;
+    }
+
+    .phase-card {
+        padding: 10px;
+    }
+
+    .phase-header {
+        margin-top: 14px;
+    }
+
+    }
+
+    /* small visual tweak: keep table header sticky on large screens inside phase-card */
+    .phase-card .table-responsive {
+        max-height: 680px;
+        overflow: auto;
+    }
+
+</style>
+
+<div class="page-wrap" role="main" aria-labelledby="fixturesTitle">
+
+    <!-- LEFT: admin menu partial (kept unchanged) -->
+    <aside class="menu-aside" aria-label="Admin menu">
+        @await Html.PartialAsync("_RepMenu")
+    </aside>
+
+    <!-- RIGHT: main content -->
+    <main class="content" id="mainContent">
+      
+        @{
+            var phases = new[] { "Quarts de finale", "Demi-finales", "Finale" };
+        }
+
+        @foreach (var phase in phases)
+        {
+            var fixturesInPhase = Model.Where(f => string.Equals(f.Phase ?? "Quarts de finale", phase, System.StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!fixturesInPhase.Any()) { continue; }
+
+            <div class="phase-header">
+                <div class="phase-title">@phase</div>
+                <div class="text-muted">(@fixturesInPhase.Count() matches)</div>
+            </div>
+
+            <div class="phase-card">
+                <div class="table-responsive">
+                    <table class="fixtures-table">
+                        <thead>
+                            <tr>
+                                <th style="width:28%;">Team A</th>
+                                <th style="width:12%;">Score</th>
+                                <th style="width:28%;">Team B</th>
+                                <th style="width:12%;">Status</th>
+                                <th style="width:12%;">Events</th>
+                                <th style="width:8%;"></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var f in fixturesInPhase)
+                            {
+                                bool isWaitingA = !string.IsNullOrEmpty(f.TeamAId) && f.TeamAId.StartsWith("WAITING_", StringComparison.OrdinalIgnoreCase);
+                                bool isWaitingB = !string.IsNullOrEmpty(f.TeamBId) && f.TeamBId.StartsWith("WAITING_", StringComparison.OrdinalIgnoreCase);
+                                bool isComplete = !string.IsNullOrEmpty(f.TeamAId) && !string.IsNullOrEmpty(f.TeamBId) && !isWaitingA && !isWaitingB;
+                                bool isFinished = string.Equals(f.Status, "Finished", StringComparison.OrdinalIgnoreCase);
+                                bool simulateAllowed = canSimulate && isComplete && !isFinished;
+
+                                string tooltipText = "";
+                                if (isFinished) tooltipText = "This match is already finished.";
+                                else if (isWaitingA || isWaitingB) tooltipText = "Match waiting — one slot is empty (Waiting for team).";
+                                else if (!canSimulate) tooltipText = "Cannot simulate — tournament not ready (need 8 real teams).";
+
+                                <tr>
+                                    <td>
+                                        @if (isWaitingA)
+                                        {
+                                            <span class="waiting">Waiting for team</span>
+                                        }
+                                        else
+                                        {
+                                            <div class="team-cell">
+                                                @if (!string.IsNullOrEmpty(f.TeamAFlag))
+                                                {
+                                                    <img src="@f.TeamAFlag" alt="@f.TeamAName flag" class="team-flag" />
+                                                }
+                                                <div class="team-name">@(!string.IsNullOrEmpty(f.TeamAName) ? f.TeamAName : "TBD")</div>
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="score-pill">@f.ScoreA</div>
+                                            <div>-</div>
+                                            <div class="score-pill">@f.ScoreB</div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        @if (isWaitingB)
+                                        {
+                                            <span class="waiting">Waiting for team</span>
+                                        }
+                                        else
+                                        {
+                                            <div class="team-cell">
+                                                @if (!string.IsNullOrEmpty(f.TeamBFlag))
+                                                {
+                                                    <img src="@f.TeamBFlag" alt="@f.TeamBName flag" class="team-flag" />
+                                                }
+                                                <div class="team-name">@(!string.IsNullOrEmpty(f.TeamBName) ? f.TeamBName : "TBD")</div>
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <td><div class="status-badge">@f.Status</div></td>
+
+                                    <td>
+                                        @if (f.Events != null && f.Events.Count > 0)
+                                        {
+                                            <ul class="events-list">
+                                                @foreach (var e in f.Events.OrderBy(ev => ev.Minute))
+                                                {
+                                                    <li>@($"{e.Minute}' — {e.PlayerName} ({e.TeamName})")</li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+
+                                    <td>
+                                           
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile stacked cards -->
+                @foreach (var f in fixturesInPhase)
+                {
+                    bool isWaitingA = !string.IsNullOrEmpty(f.TeamAId) && f.TeamAId.StartsWith("WAITING_", StringComparison.OrdinalIgnoreCase);
+                    bool isWaitingB = !string.IsNullOrEmpty(f.TeamBId) && f.TeamBId.StartsWith("WAITING_", StringComparison.OrdinalIgnoreCase);
+                    bool isComplete = !string.IsNullOrEmpty(f.TeamAId) && !string.IsNullOrEmpty(f.TeamBId) && !isWaitingA && !isWaitingB;
+                    bool isFinished = string.Equals(f.Status, "Finished", StringComparison.OrdinalIgnoreCase);
+                    bool simulateAllowed = canSimulate && isComplete && !isFinished;
+
+                    string tooltipText = "";
+                    if (isFinished) tooltipText = "This match is already finished.";
+                    else if (isWaitingA || isWaitingB) tooltipText = "Match waiting — one slot is empty (Waiting for team).";
+                    else if (!canSimulate) tooltipText = "Cannot simulate — tournament not ready (need 8 real teams).";
+
+                    <div class="fixture-card" role="article" aria-label="Fixture card">
+                        <div class="fixture-row">
+                            <div style="flex:1;min-width:0;">
+                                <div class="d-flex align-items-center justify-content-between" style="gap:12px;">
+                                    <div class="team-block">
+                                        @if (!isWaitingA)
+                                        {
+                                            @if (!string.IsNullOrEmpty(f.TeamAFlag))
+                                            {
+                                                <img src="@f.TeamAFlag" alt="@f.TeamAName flag" style="width:40px;height:26px;object-fit:cover;border-radius:6px;border:1px solid rgba(0,0,0,0.04);" />
+                                            }
+                                            <div class="team-name">@(!string.IsNullOrEmpty(f.TeamAName) ? f.TeamAName : "TBD")</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="waiting">Waiting for team</div>
+                                        }
+                                    </div>
+
+                                    <div style="font-weight:900; display:flex;gap:8px;align-items:center;">
+                                        <div class="score-pill">@f.ScoreA</div><div>-</div><div class="score-pill">@f.ScoreB</div>
+                                    </div>
+
+                                    <div class="team-block" style="justify-content:flex-end;">
+                                        @if (!isWaitingB)
+                                        {
+                                            @if (!string.IsNullOrEmpty(f.TeamBFlag))
+                                            {
+                                                <img src="@f.TeamBFlag" alt="@f.TeamBName flag" style="width:40px;height:26px;object-fit:cover;border-radius:6px;border:1px solid rgba(0,0,0,0.04);" />
+                                            }
+                                            <div class="team-name">@(!string.IsNullOrEmpty(f.TeamBName) ? f.TeamBName : "TBD")</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="waiting">Waiting for team</div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 align-items-center" style="flex-wrap:wrap;">
+                                    <div class="status-badge">@f.Status</div>
+                                </div>
+
+                                <div>
+                                    @if (f.Events != null && f.Events.Count > 0)
+                                    {
+                                        <div style="font-weight:700;margin-bottom:6px;">Events</div>
+                                        <ul style="padding-left:0;margin:0;list-style:none;">
+                                            @foreach (var e in f.Events.OrderBy(ev => ev.Minute))
+                                            {
+                                                <li style="font-size:0.92rem;color:#444;">@($"{e.Minute}' — {e.PlayerName} ({e.TeamName})")</li>
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @{
+            var finalMatch = Model.FirstOrDefault(f => string.Equals(f.Phase, "Finale", StringComparison.OrdinalIgnoreCase) && f.Status == "Finished");
+            if (finalMatch != null)
+            {
+                var champion = finalMatch.ScoreA > finalMatch.ScoreB ? finalMatch.TeamAName : finalMatch.TeamBName;
+                <div class="mt-4 alert alert-success text-center" style="font-weight:800;">
+                    🏆 Champion: @champion
+                </div>
+            }
+        }
+    </main>
+</div>
+
+<script>
+    (function(){
+      document.querySelectorAll('.tooltip-btn[disabled]').forEach(btn=>{
+        btn.addEventListener('focus', ()=>btn.classList.add('focus-tooltip'));
+        btn.addEventListener('blur', ()=>btn.classList.remove('focus-tooltip'));
+      });
+    })();
+</script>

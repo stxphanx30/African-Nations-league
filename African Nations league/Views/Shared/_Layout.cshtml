@@ -38,14 +38,20 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"
-                                                  && ViewContext.RouteData.Values["action"].ToString() == "Leaderboard" ? "active" : "")"
-                               asp-area="" asp-controller="Teams" asp-action="Leaderboard">Top Scorers</a>
+                                                                                 && ViewContext.RouteData.Values["action"].ToString() == "GenerateFixtures" ? "active" : "")"
+                               asp-area="" asp-controller="Teams" asp-action="GenerateFixtures">Fixtures</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"
-                                                  && ViewContext.RouteData.Values["action"].ToString() == "Bracket" ? "active" : "")"
+                                                                                 && ViewContext.RouteData.Values["action"].ToString() == "Bracket" ? "active" : "")"
                                asp-area="" asp-controller="Teams" asp-action="Bracket">Bracket</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"
+                                                  && ViewContext.RouteData.Values["action"].ToString() == "Leaderboard" ? "active" : "")"
+                               asp-area="" asp-controller="Teams" asp-action="Leaderboard">Top Scorers</a>
+                        </li>
+                       
                     </ul>
 
                     <!-- ✅ LOGIN BUTTON -->

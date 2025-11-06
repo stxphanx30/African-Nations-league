@@ -40,8 +40,8 @@
             </li>
 
             <li class="rep-item">
-                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "Fixtures" ? "active" : "")"
-                   asp-controller="Representative" asp-action="Fixtures">
+                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "GenerateFixtures" ? "active" : "")"
+                   asp-controller="Representative" asp-action="GenerateFixtures">
                     Fixtures
                 </a>
             </li>
