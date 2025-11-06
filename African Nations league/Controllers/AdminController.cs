@@ -359,6 +359,48 @@ namespace African_Nations_league.Controllers
             // reload fixtures après suppression
             fixtures = await _mongo.GetAllFixturesAsync();
 
+            // --- Backfill flags for existing fixtures (safe, idempotent) ---
+            // map teams by id (key: Id) so we can quickly populate flags
+            var teamLookup = allTeams
+                .Where(t => !string.IsNullOrEmpty(t.Id))
+                .ToDictionary(t => t.Id, t => t, StringComparer.OrdinalIgnoreCase);
+
+            var fixturesToUpdate = new List<Fixture>();
+            foreach (var f in fixtures)
+            {
+                bool changed = false;
+
+                if (string.IsNullOrEmpty(f.TeamAFlag) && !string.IsNullOrEmpty(f.TeamAId) && teamLookup.TryGetValue(f.TeamAId, out var ta))
+                {
+                    f.TeamAFlag = ta.FlagUrl; // Teams.FlagUrl (may be null)
+                    changed = true;
+                }
+
+                if (string.IsNullOrEmpty(f.TeamBFlag) && !string.IsNullOrEmpty(f.TeamBId) && teamLookup.TryGetValue(f.TeamBId, out var tb))
+                {
+                    f.TeamBFlag = tb.FlagUrl;
+                    changed = true;
+                }
+
+                if (changed) fixturesToUpdate.Add(f);
+            }
+
+            if (fixturesToUpdate.Count > 0)
+            {
+                // update one-by-one to be conservative / idempotent
+                foreach (var uf in fixturesToUpdate)
+                {
+                    // Use your repository update — replace with your actual method.
+                    // If you have UpdateFixtureAsync implemented, this will work.
+                    // Otherwise use ReplaceOneAsync or UpdateOneAsync in your _mongo implementation.
+                    await _mongo.UpdateFixtureAsync(uf);
+                }
+
+                // reload fixtures after updates
+                fixtures = await _mongo.GetAllFixturesAsync();
+            }
+            // --- end backfill ---
+
             // 4. Ensure quarter finals exist (exactement 4 fixtures -> 8 slots)
             var quarterPhase = "Quarts de finale";
             var quarterFixtures = fixtures.Where(f => string.Equals(f.Phase, quarterPhase, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -401,8 +443,10 @@ namespace African_Nations_league.Controllers
                     {
                         TeamAId = a.Id,
                         TeamAName = a.TeamName,
+                        TeamAFlag = a.FlagUrl, // <-- set flag
                         TeamBId = b.Id,
                         TeamBName = b.TeamName,
+                        TeamBFlag = b.FlagUrl, // <-- set flag
                         Phase = quarterPhase,
                         Status = (IsWaitingId(a.Id) || IsWaitingId(b.Id)) ? "Waiting" : "Scheduled",
                         CreatedAt = DateTime.UtcNow
@@ -427,12 +471,17 @@ namespace African_Nations_league.Controllers
                     var newQuarts = new List<Fixture>();
                     for (int i = 0; i + 1 < selected.Count; i += 2)
                     {
+                        var A = selected[i];
+                        var B = selected[i + 1];
+
                         newQuarts.Add(new Fixture
                         {
-                            TeamAId = selected[i].Id,
-                            TeamAName = selected[i].TeamName,
-                            TeamBId = selected[i + 1].Id,
-                            TeamBName = selected[i + 1].TeamName,
+                            TeamAId = A.Id,
+                            TeamAName = A.TeamName,
+                            TeamAFlag = A.FlagUrl, // <-- set flag
+                            TeamBId = B.Id,
+                            TeamBName = B.TeamName,
+                            TeamBFlag = B.FlagUrl, // <-- set flag
                             Phase = quarterPhase,
                             Status = "Scheduled",
                             CreatedAt = DateTime.UtcNow
@@ -474,7 +523,6 @@ namespace African_Nations_league.Controllers
 
             return View(ordered);
         }
-
         // helper to detect placeholders
         private bool IsWaitingId(string id)
         {

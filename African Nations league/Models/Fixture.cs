@@ -1,6 +1,4 @@
-﻿
-
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
@@ -15,8 +13,13 @@ namespace African_Nations_league.Models
 
         public string TeamAId { get; set; }
         public string TeamAName { get; set; }
+        // <-- added
+        public string TeamAFlag { get; set; }
+
         public string TeamBId { get; set; }
         public string TeamBName { get; set; }
+        // <-- added
+        public string TeamBFlag { get; set; }
 
         public int ScoreA { get; set; } = 0;
         public int ScoreB { get; set; } = 0;

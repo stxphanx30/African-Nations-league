@@ -1,50 +1,257 @@
 ﻿@model List<African_Nations_league.Models.LeaderboardEntry>
+
 @{
     ViewData["Title"] = "Top Scorers";
+    Layout = null; // standalone as requested
 }
-<div class="row">
-    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
-    <div class="col-9">
-        <h2>Top Scorers</h2>
-        <div class="table-responsive">
-            <table class="table table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Team</th>
-                        <th>Player</th>
-                        <th>Goals</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (int i = 0; i < Model.Count; i++)
-                    {
-                        var item = Model[i];
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --caf-green: #126035;
+        --caf-gold: #f1c232;
+        --caf-red: #c8102e;
+        --muted: #6c757d;
+        --page-bg: #fbfcfb;
+        --card-bg: #ffffff;
+        --shadow: 0 10px 30px rgba(12,20,30,0.06);
+        --radius: 10px;
+    }
+
+    body {
+        background: var(--page-bg);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #222;
+        margin: 0;
+        padding: 12px;
+    }
+
+    .layout-grid {
+        max-width: 1200px;
+        margin: 10px auto;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
+    /* ensure aside menu takes full height visually */
+    aside {
+        min-height: 120px;
+    }
+
+    .leaderboard-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    h2.page-title {
+        color: var(--caf-green);
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .subtitle {
+        color: var(--muted);
+        margin-bottom: 14px;
+    }
+
+    .leaderboard-table {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        border: 2px solid rgba(200,16,46,0.06);
+    }
+
+    table.table-striped thead th {
+        background: linear-gradient(90deg, rgba(18,96,53,0.06), rgba(18,96,53,0.02));
+        color: var(--caf-green);
+        font-weight: 700;
+        border-top: 0;
+    }
+
+    table.table-striped tbody tr {
+        transition: background .15s ease, transform .1s ease;
+    }
+
+        table.table-striped tbody tr:hover {
+            background: rgba(18,96,53,0.03);
+            transform: translateY(-1px);
+        }
+
+    .rank-badge {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-weight: 800;
+        text-align: center;
+        line-height: 28px;
+        color: #fff;
+        background: var(--caf-green);
+    }
+
+    .rank-1 {
+        background: var(--caf-gold);
+        color: #111;
+    }
+
+    .rank-2 {
+        background: silver;
+        color: #111;
+    }
+
+    .rank-3 {
+        background: #cd7f32;
+        color: #fff;
+    }
+
+    .team-cell, .player-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0; /* prevent overflow in responsive */
+    }
+
+        .team-cell img, .player-cell img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+
+    td {
+        vertical-align: middle;
+        font-size: 0.98rem;
+    }
+
+        td strong {
+            color: var(--caf-green);
+        }
+
+        td.goals-col {
+            font-weight: 800;
+            color: var(--caf-red);
+            font-size: 1.1rem;
+        }
+
+    .empty-state {
+        padding: 28px;
+        text-align: center;
+        color: var(--muted);
+        background: linear-gradient(180deg, #fff, #fbfbfb);
+        border-radius: 8px;
+        border: 1px dashed rgba(18,96,53,0.06);
+    }
+
+    /* Responsive: stack aside above main on small screens */
+    @@media (max-width: 767.98px) {
+        .layout-grid
+
+    {
+        grid-template-columns: 1fr;
+        padding: 12px;
+    }
+
+    .leaderboard-table {
+        border: none;
+        box-shadow: none;
+    }
+
+    table {
+        font-size: 0.9rem;
+    }
+
+    .team-cell img, .player-cell img {
+        width: 34px;
+        height: 34px;
+    }
+
+    .rank-badge {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 0.9rem;
+    }
+
+    }
+
+    /* small tweak to prevent table overflow */
+    .table-responsive {
+        overflow-x: auto;
+    }
+</style>
+
+<div class="layout-grid">
+    <!-- Left: representative menu -->
+    <aside>
+        @await Html.PartialAsync("_AdminMenu")
+    </aside>
+
+    <!-- Right: leaderboard -->
+    <main class="leaderboard-container" role="main" aria-labelledby="leaderboardTitle">
+        <h2 id="leaderboardTitle" class="page-title">🏆 Top Scorers</h2>
+        <p class="subtitle">The leading goal scorers of the tournament so far.</p>
+
+        <div class="table-responsive leaderboard-table" role="region" aria-label="Top scorers table">
+            @if (Model == null || Model.Count == 0)
+            {
+                <div class="empty-state">No scorers yet.</div>
+            }
+            else
+            {
+                <table class="table table-striped align-middle mb-0" aria-describedby="leaderboardTitle">
+                    <thead>
                         <tr>
-                            <td>@(i + 1)</td>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:8px;">
-                                    @if (!string.IsNullOrEmpty(item.TeamFlag))
-                                    {
-                                        <img src="@item.TeamFlag" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
-                                    }
-                                    <span>@item.TeamName</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:8px;">
-                                    @if (!string.IsNullOrEmpty(item.PlayerPicture))
-                                    {
-                                        <img src="@item.PlayerPicture" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
-                                    }
-                                    <span>@item.PlayerName</span>
-                                </div>
-                            </td>
-                            <td style="font-weight:700">@item.Goals</td>
+                            <th style="width:60px;">#</th>
+                            <th>Team</th>
+                            <th>Player</th>
+                            <th>Goals</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            var item = Model[i];
+                            var rankClass = i == 0 ? "rank-1" : i == 1 ? "rank-2" : i == 2 ? "rank-3" : "";
+
+                            <tr>
+                                <td style="width:60px;">
+                                    <span class="rank-badge @rankClass">@(i + 1)</span>
+                                </td>
+                                <td>
+                                    <div class="team-cell">
+                                        @if (!string.IsNullOrEmpty(item.TeamFlag))
+                                        {
+                                            <img src="@item.TeamFlag" alt="@item.TeamName flag" />
+                                        }
+                                        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>@item.TeamName</strong></span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="player-cell">
+                                        @if (!string.IsNullOrEmpty(item.PlayerPicture))
+                                        {
+                                            <img src="@item.PlayerPicture" alt="@item.PlayerName" />
+                                        }
+                                        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@item.PlayerName</span>
+                                    </div>
+                                </td>
+                                <td class="goals-col" style="width:110px;">@item.Goals</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
         </div>
-    </div>
+    </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
