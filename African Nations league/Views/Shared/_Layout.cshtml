@@ -37,8 +37,8 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"
-                                                                  && ViewContext.RouteData.Values["action"].ToString() == "TopScorers" ? "active" : "")"
-                               asp-area="" asp-controller="Teams" asp-action="TopScorers">Top Scorers</a>
+                                                                                                 && ViewContext.RouteData.Values["action"].ToString() == "Leaderboard" ? "active" : "")"
+                               asp-area="" asp-controller="Teams" asp-action="Leaderboard">Top Scorers</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"

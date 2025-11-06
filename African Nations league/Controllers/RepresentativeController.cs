@@ -28,44 +28,65 @@ namespace African_Nations_league.Controllers
             var role = HttpContext.Session.GetString("UserRole");
             return !string.IsNullOrEmpty(role) && role == "Representative";
         }
+        public async Task<IActionResult> TopScorers()
+        {
 
+            var leaderboard = await _mongo.GetLeaderboardAsync();
+            return View("Leaderboard", leaderboard); // ta vue TopScorers.cshtml attend List<LeaderboardEntry>
+        }
         // Dashboard: profile + team overview only
         public async Task<IActionResult> Index()
         {
             if (!IsRepresentative())
                 return RedirectToAction("AccessDenied", "Admin");
 
-            // 1️⃣ Récupérer l'utilisateur connecté via son email
+            // 1) Récupérer l'email de session (fallback possible aux claims si tu veux)
             var email = HttpContext.Session.GetString("UserEmail");
             if (string.IsNullOrEmpty(email))
                 return RedirectToAction("Login", "Auth");
 
+            // 2) Charger l'utilisateur (depuis user service)
             var user = await _userService.GetCurrentUserAsync(email);
             if (user == null)
                 return RedirectToAction("Login", "Auth");
 
             Teams team = null;
 
-            // 2️⃣ Chercher l'équipe dans la collection Teams si TeamId est valide
+            // 3) Si User.TeamId est renseigné -> essayer de charger la team dans la collection Teams
             if (!string.IsNullOrEmpty(user.TeamId))
             {
-                team = await _mongo.GetTeamByIdOrCodeAsync(user.TeamId);
-            }
-
-            // 3️⃣ Si l'équipe n'existe pas dans Teams, prendre les infos de l'utilisateur (Users collection)
-            if (team == null && !string.IsNullOrEmpty(user.TeamId))
-            {
-                team = new Teams
+                try
                 {
-                    Id = user.TeamId,
-                    TeamName = user.TeamName,
-                    FlagUrl = user.TeamFlag,
-                    TeamRating = user.TeamRating,
-                    Players = user.Squad
-                };
+                    // Essaie de récupérer la team depuis la collection Teams (par Id ou code)
+                    team = await _mongo.GetTeamByIdOrCodeAsync(user.TeamId);
+                }
+                catch
+                {
+                    // ignore exception et fallback ci-dessous
+                    team = null;
+                }
+
+                // 4) Si la team n'existe pas dans la collection Teams mais que l'user a des infos de team,
+                //    construire un objet Teams à partir des infos présentes sur l'utilisateur (Users collection).
+                if (team == null && (!string.IsNullOrEmpty(user.TeamName) || user.Squad != null))
+                {
+                    team = new Teams
+                    {
+                        Id = user.TeamId,
+                        TeamId = user.TeamId,
+                        TeamName = user.TeamName ?? "Unnamed team",
+                        FlagUrl = user.TeamFlag,
+                        TeamRating = user.TeamRating,
+                        Players = user.Squad ?? new List<Players>() // adapte Players au type exact
+                    };
+                }
             }
 
-            // 4️⃣ Préparer le viewmodel
+            // 5) Si aucun TeamId n'est défini sur l'utilisateur, on n'affiche PAS d'équipe aléatoire.
+            //    On peut afficher un message "No team assigned" dans la vue.
+            //    (Si tu veux, tu peux ici chercher "par email" dans Users pour trouver une team liée, 
+            //     mais normalement user.TeamId doit exister.)
+
             var vm = new RepresentativeDashboardViewModel
             {
                 User = user,
@@ -74,7 +95,6 @@ namespace African_Nations_league.Controllers
 
             return View(vm);
         }
-
         // GET: /Representative/Teams
         public async Task<IActionResult> Teams()
         {

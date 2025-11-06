@@ -178,7 +178,7 @@ namespace African_Nations_league.Controllers
 
             return View(vm); // Admin/TeamDetails.cshtml doit accepter TeamDetailsViewModel
         }
-        public async Task<IActionResult> TopScorers()
+        public async Task<IActionResult> Leaderboard()
         {
 
             var leaderboard = await _mongo.GetLeaderboardAsync();

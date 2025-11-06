@@ -1,52 +1,300 @@
 ﻿@{
     ViewData["Title"] = "Signup";
+    Layout = null; // keep your layout or set to null if standalone
 }
 
-<h2>Signup (Representatives)</h2>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-<form asp-action="Signup" method="post">
-    @Html.AntiForgeryToken()
+<style>
+/* ===== Visual tokens (matching the login/register design) ===== */
+:root{
+  --caf-green: #126035;
+  --caf-gold:  #f3c24b;
+  --bg-dark:   #062f22;
+  --muted:     #9aa6a0;
+  --card-radius: 12px;
+}
 
-    <div>
-        <label>Full name</label>
-        <input type="text" name="FullName" placeholder="Full name" required />
-    </div>
+/* Page background */
+.signup-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-image: linear-gradient(180deg, rgba(2,10,6,0.75), rgba(2,10,6,0.55)),
+    url('/images/2025_Africa_Cup_of_Nations_logo.svg.png');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
 
-    <div>
-        <label>Email</label>
-        <input type="email" name="Email" placeholder="Email" required />
-    </div>
+/* Card layout */
+.signup-card {
+  width: 100%;
+  max-width: 1100px;
+  display: grid;
+  grid-template-columns: 1fr 520px;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: 0 18px 48px rgba(2,10,6,0.45);
+  background: rgba(255,255,255,0.02);
+}
 
-    <div>
-        <label>Password</label>
-        <input type="password" name="Password" placeholder="Password" required />
-    </div>
+/* Left info panel */
+.signup-info {
+  background: linear-gradient(135deg, rgba(18,96,53,0.95), rgba(8,50,32,0.96));
+  color:#fff;
+  padding: 34px;
+  position: relative;
+}
+.signup-info .badge {
+  background: var(--caf-gold);
+  color: #0b2b1f;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+.signup-info h1 {
+  margin: 10px 0 6px 0;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+.signup-info p { color: rgba(255,255,255,0.9); margin:0; line-height:1.45; }
 
-    <div>
-        <label>Phone number</label>
-        <input type="tel" name="PhoneNumber" placeholder="Phone number" />
-    </div>
+.signup-info .cup {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  opacity: 0.12;
+  width: 160px;
+  pointer-events: none;
+}
 
-    <div>
-        <label>Manager name</label>
-        <input type="text" name="ManagerName" placeholder="Manager name" required />
-    </div>
+/* Right form panel */
+.signup-form {
+  background: #fff;
+  padding: 28px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  justify-content:center;
+}
+.signup-form h2 { font-weight:800; color:var(--bg-dark); margin-bottom: 6px; }
+.form-control {
+  border-radius: 10px;
+  border: 1px solid rgba(2,10,6,0.06);
+  padding: 10px 12px;
+}
+.btn-primary {
+  background: linear-gradient(90deg, var(--caf-green), #0f7a4d);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:10px 12px;
+  font-weight:800;
+}
+.btn-outline {
+  background: #fff;
+  border: 1px solid rgba(18,96,53,0.08);
+  color: var(--caf-green);
+  border-radius:10px;
+  padding:10px 12px;
+  font-weight:700;
+}
+.btn-home {
+  background:#e9ecef;
+  color:#333;
+  border:none;
+  border-radius:10px;
+  padding:10px 12px;
+  font-weight:700;
+}
+.alert-err {
+  background:#ffefef;
+  color:#6b0a0a;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid rgba(150,0,0,0.08);
+  font-weight:700;
+}
+.small-muted { color:var(--muted); font-size:0.92rem; }
 
-    <div>
-        <label>Country (Team)</label>
-        <select name="TeamId" id="TeamId" required>
-            <option value="">-- Select country --</option>
-            <!-- Example options, replace with your actual sportmonks ids -->
-            <option value="18558">Senegal</option>
-            <option value="18555">South Africa</option>
-            <option value="18552">Congo DR</option>
-            <option value="18546">Egypt</option>
-            <option value="18549">Togo</option>
-            <!-- OR populate from ViewBag.TeamOptions in GET action -->
-        </select>
-    </div>
+/* phone helper */
+.input-row { display:flex; gap:12px; }
+.input-row .form-control { flex:1; }
 
-    <input type="hidden" name="Role" value="Representative" />
+/* responsive */
+@@media (max-width: 980px) {
+  .signup-card { grid-template-columns: 1fr; max-width: 760px; }
+  .signup-info { order: 2; padding: 20px; }
+  .signup-form { order: 1; padding: 20px; }
+}
+</style>
 
-    <button type="submit">Sign up</button>
-</form>
+<div class="signup-page">
+  <div class="signup-card" role="main" aria-labelledby="signupTitle">
+
+    <!-- LEFT: informational panel -->
+    <aside class="signup-info" aria-hidden="false">
+      <div class="badge">CAF • Morocco 2025</div>
+      <h1>Representative Signup</h1>
+      <p style="margin-top:6px;">Create your representative account to manage your country's profile and access admin features.</p>
+
+      <p style="margin-top:18px;">
+        Please make sure the information you enter is accurate. You will be contacted for verification when needed.
+      </p>
+
+      <img src="/images/cup.png" alt="CAF Cup" class="cup" />
+    </aside>
+
+    <!-- RIGHT: signup form (keep fields and actions exactly as requested) -->
+    <section class="signup-form" aria-labelledby="signupTitle">
+      <h2 id="signupTitle">Signup (Representatives)</h2>
+
+      @* Keep the antiforgery token as in your original form *@
+      @Html.AntiForgeryToken()
+
+      @* Show server messages if provided by controller via TempData or ModelState *@
+      @if (TempData["Error"] != null)
+      {
+          <div class="alert-err" role="alert">@TempData["Error"]</div>
+      }
+
+      @if (!ViewData.ModelState.IsValid)
+      {
+          <div class="alert-err" role="alert">
+              @foreach (var v in ViewData.ModelState.Values.SelectMany(x => x.Errors))
+              {
+                  <div>@v.ErrorMessage</div>
+              }
+          </div>
+      }
+
+      <!-- NOTE: form action kept as asp-action="Signup" and field names preserved exactly -->
+      <form asp-action="Signup" method="post" id="signupForm" novalidate>
+          <div class="mb-3">
+              <label>Full name</label>
+              <input type="text" name="FullName" class="form-control" placeholder="Full name" required />
+          </div>
+
+          <div class="mb-3">
+              <label>Email</label>
+              <input type="email" name="Email" class="form-control" placeholder="Email" required />
+          </div>
+
+          <div class="mb-3">
+              <label>Password</label>
+              <input type="password" name="Password" class="form-control" placeholder="Password" required minlength="6" />
+              <div class="small-muted">Use at least 6 characters. Use letters + numbers for stronger passwords.</div>
+          </div>
+
+          <div class="mb-3">
+              <label>Phone number</label>
+              <input type="tel" name="PhoneNumber" class="form-control" placeholder="Phone number (optional)" />
+          </div>
+
+          <div class="mb-3">
+              <label>Manager name</label>
+              <input type="text" name="ManagerName" class="form-control" placeholder="Manager name" required />
+          </div>
+
+          <div class="mb-3">
+              <label>Country (Team)</label>
+              <select name="TeamId" id="TeamId" class="form-control" required>
+                  <option value="">-- Select country --</option>
+                  <!-- Keep the original example values (do not change) -->
+                  <option value="18558">Senegal</option>
+                  <option value="18555">South Africa</option>
+                  <option value="18552">Congo DR</option>
+                  <option value="18546">Egypt</option>
+                  <option value="18549">Togo</option>
+                  @* If you populate options from server, keep that logic in the controller GET. *@
+              </select>
+          </div>
+
+          <input type="hidden" name="Role" value="Representative" />
+
+          <div style="display:flex; gap:12px; margin-top:6px;">
+            <button type="submit" class="btn-primary" id="signupBtn">Sign up</button>
+
+            <!-- keep the "already have account / back to home" flow, placed after primary action visually is requested earlier;
+                 here we show the login link and the back home button as secondary actions under the form -->
+          </div>
+
+          <div style="margin-top:12px;">
+            <a href="@Url.Action("Login","Auth")" class="btn-outline d-inline-block w-100 text-center" role="button" style="text-decoration:none;">Already have an account? Log in</a>
+          </div>
+
+          <div style="margin-top:8px;">
+            <a href="@Url.Action("Index","Home")" class="btn-home d-inline-block w-100 text-center" role="button" style="text-decoration:none;">🏠 Back to home</a>
+          </div>
+      </form>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('signupForm');
+  if (!form) return;
+
+  function clearClientAlerts() {
+    var prev = document.querySelectorAll('.client-alert');
+    prev.forEach(function (el) { el.remove(); });
+  }
+
+  function showClientErrors(errors) {
+    clearClientAlerts();
+    var alert = document.createElement('div');
+    alert.className = 'alert-err client-alert';
+    alert.setAttribute('role', 'alert');
+    var ul = document.createElement('ul');
+    ul.style.margin = '0';
+    ul.style.paddingLeft = '18px';
+    errors.forEach(function (m) {
+      var li = document.createElement('li');
+      li.textContent = m;
+      ul.appendChild(li);
+    });
+    alert.appendChild(ul);
+    form.insertBefore(alert, form.firstChild);
+    alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  form.addEventListener('submit', function (e) {
+    clearClientAlerts();
+    var errors = [];
+
+    var fullName = (form.elements['FullName'] || {}).value || '';
+    var email = (form.elements['Email'] || {}).value || '';
+    var password = (form.elements['Password'] || {}).value || '';
+    var phone = (form.elements['PhoneNumber'] || {}).value || '';
+    var manager = (form.elements['ManagerName'] || {}).value || '';
+    var teamId = (form.elements['TeamId'] || {}).value || '';
+
+
+    var emailRegex = new RegExp("^[^\\s@@]+@@[^\\s@@]+\\.[^\\s@@]+$");
+    if (!fullName.trim()) errors.push('Full name is required.');
+    if (!email || !emailRegex.test(email)) errors.push('Please enter a valid email address.');
+    if (!password || password.length < 6) errors.push('Password must be at least 6 characters.');
+    if (!manager.trim()) errors.push('Manager name is required.');
+    if (!teamId) errors.push('Please select a country (team).');
+
+    // phone basic pattern (optional) - if filled, check simple digits/punctuations
+    if (phone && !/^[0-9+\-\s()]{6,20}$/.test(phone)) {
+      errors.push('Please enter a valid phone number or leave it empty.');
+    }
+
+    if (errors.length) {
+      e.preventDefault();
+      showClientErrors(errors);
+      return false;
+    }
+
+    // allow normal post to your controller
+    return true;
+  });
+})();
+</script>

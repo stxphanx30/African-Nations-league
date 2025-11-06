@@ -1,5 +1,530 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home - African Nations League";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
+<style>
+    /* === Theme colors === */
+    :root {
+        --caf-red: #c8102e; /* hero dominant red */
+        --caf-gold: #f1c232; /* accent gold */
+        --caf-green: #007A3D; /* CAF green for badges/headers */
+        --muted: #6c757d;
+        --page-bg: #fafafa;
+    }
+
+    /* Page basics */
+    html, body {
+        height: 100%;
+        margin: 0;
+    }
+
+    body {
+        background: var(--page-bg);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    /* --- Hero (red) --- */
+    .hero {
+        background: linear-gradient(135deg, rgba(106,1,1,0.70) 0%, rgba(106,1,1,0.70) 100%), url('/images/2025_Africa_Cup_of_Nations_logo.svg.png') center center / cover no-repeat;
+        padding: 64px 0;
+        color: white;
+        position: relative;
+    }
+
+        .hero .overlay {
+            background: rgba(0,0,0,0.18);
+            padding: 28px;
+            border-radius: 12px;
+        }
+
+    /* Countdown box */
+    .countdown {
+        background: rgba(255,255,255,0.06);
+        padding: 12px 16px;
+        border-radius: 10px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+    }
+
+    /* News ticker */
+    .news-ticker {
+        background: var(--caf-red);
+        color: #fff;
+        padding: 6px 12px;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+        .news-ticker #tickerInner {
+            display: inline-block;
+            animation: ticker 28s linear infinite;
+        }
+
+        .news-ticker .ticker-item {
+            display: inline-block;
+            padding-right: 60px;
+            font-weight: 600;
+        }
+
+    /* Cards and sections */
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+        .section-title h3 {
+            margin: 0;
+            color: var(--caf-green);
+        }
+
+    .badge-caf {
+        background: var(--caf-green);
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+    }
+
+    /* Make divisions/cards have a subtle red stroke as requested */
+    .card {
+        border: 2px solid rgba(200,16,46,0.12); /* soft red stroke */
+        box-shadow: 0 1px 6px rgba(0,0,0,0.03);
+    }
+        /* stronger accent for main CTA or highlighted boxes */
+        .card.accent {
+            border-color: var(--caf-red);
+        }
+
+    /* Sponsors - uniform size and boxed to keep visual balance */
+    .sponsor-logos {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+
+        .sponsor-logos .logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: #fff; /* helps logos with transparent backgrounds */
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            height: 60px;
+            min-width: 120px;
+        }
+
+            .sponsor-logos .logo img {
+                max-height: 44px;
+                width: auto;
+                display: block;
+                object-fit: contain;
+            }
+
+    /* Footer CTA box */
+    .footer-cta {
+        background: linear-gradient(90deg,var(--caf-red),#8b0000);
+        color: white;
+        padding: 22px;
+        border-radius: 8px;
+    }
+
+    /* Fixtures: clean rows with flags and alignment */
+    .fixture-list {
+        padding-left: 0;
+        margin-bottom: 0;
+    }
+
+    .fixture-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 6px;
+        border-radius: 6px;
+        transition: background .15s;
+    }
+
+        .fixture-item:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+    .fixture-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 140px;
+    }
+
+    .fixture-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .fixture-flag {
+        width: 30px;
+        height: 20px;
+        object-fit: cover;
+        border-radius: 3px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+
+    .team-code {
+        font-weight: 700;
+        letter-spacing: 0.6px;
+    }
+
+    /* Social buttons (icon + label) */
+    .social-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,0.06);
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        font-size: 0.9rem;
+    }
+
+        .social-btn svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
+    /* Carousel image sizing to avoid overflow */
+    .carousel .img-fluid {
+        max-height: 220px;
+        width: 100%;
+        object-fit: cover;
+    }
+
+    /* Responsive tweaks */
+    @@media (max-width:767px) {
+        .hero
+
+    {
+        padding: 28px 0;
+    }
+
+    .overlay {
+        padding: 18px;
+    }
+
+    .sponsor-logos .logo {
+        min-width: 80px;
+        height: 48px;
+    }
+
+    .carousel .img-fluid {
+        max-height: 160px;
+    }
+
+    .fixture-left {
+        min-width: 120px;
+    }
+
+    }
+
+    @@keyframes ticker {
+        0%
+
+    {
+        transform: translateX(0%);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+
+    }
+
+    /* Small utility */
+    .text-muted-small {
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+</style>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="container">
+        <div class="overlay">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <h1 class="display-5 fw-bold">TotalEnergies CAF Africa Cup of Nations<br /><span style="color:var(--caf-gold)">Morocco 2025</span></h1>
+                    <p class="lead text-white-50">The continent’s biggest football festival — stadiums across Rabat, Casablanca, Fès, Tangier, Marrakech and Agadir.</p>
+
+                    <div class="d-flex gap-3 align-items-center mt-3 flex-wrap">
+                        <a href="#news" class="btn btn-outline-light btn-sm">Latest News</a>
+                        <a href="#fixtures" class="btn btn-outline-light btn-sm">Fixtures & Results</a>
+                    </div>
+
+                    <p class="mt-3 text-white-50 small">Opening match: Morocco — 21 December 2025 (official schedule).</p>
+                </div>
+
+                <!-- Optional right column (kept empty as in original) -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NEWS TICKER -->
+<div class="news-ticker">
+    <div id="tickerInner" style="display:inline-block;">
+        <span class="ticker-item">CAF announces match schedule for Morocco 2025 — full details on venues.</span>
+        <span class="ticker-item">TotalEnergies continues as title sponsor — hospitality packages released.</span>
+        <span class="ticker-item">Fan zones revealed in Rabat, Casablanca and Marrakech — see guide.</span>
+        <span class="ticker-item">Latest squad announcements — follow teams page for roster updates.</span>
+    </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container main-container mt-4">
+    <div class="row g-4">
+
+        <!-- LEFT: News + Carousel + Video -->
+        <div class="col-lg-8">
+            <div id="news" class="mb-4">
+                <div class="section-title mb-2">
+                    <h3><span class="badge-caf px-2 me-2">News</span> Latest CAF Stories</h3>
+                </div>
+
+                <div id="newsCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <img src="/images/match_schedule_totalenergies-caf-africa-cup-of-nations_morocco-25-1.png" class="img-fluid rounded" alt="CAF news 1" />
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>CAF announces match schedule for Morocco 2025</h5>
+                                    <p class="text-muted">Opening match set for 21 December 2025 — nine stadiums across six cities will host the tournament.</p>
+                                    <p><a href="https://www.cafonline.com/" target="_blank" rel="noopener">Read on CAF</a></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="carousel-item">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <img src="/images/Morocco-fans-1024x576-1.webp" class="img-fluid rounded" alt="CAF news 2" />
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Milestones & Fan zones announced</h5>
+                                    <p class="text-muted">Cities prepare fan zones and hospitality; travel guidance released for supporters.</p>
+                                    <p><a href="https://www.cafonline.com/" target="_blank" rel="noopener">Read on CAF</a></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="carousel-item">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <img src="/images/new_rabat_complexe-sportif-prince-moulay-abdellah.png" class="img-fluid rounded" alt="CAF news 3" />
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Venues & Hosts</h5>
+                                    <p class="text-muted">Stadiums selected across Rabat, Casablanca, Fès, Tangier, Marrakech and Agadir.</p>
+                                    <p><a href="https://www.reuters.com/" target="_blank" rel="noopener">Read more</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Video / Highlights -->
+            <div class="mb-4">
+                <div class="section-title mb-2">
+                    <h3><span class="badge-caf px-2 me-2">Highlights</span> Featured Video</h3>
+                </div>
+                <div class="ratio ratio-16x9">
+                    <iframe width="560" height="315" src="https://www.youtube.com/embed/0iWOuLvdOY8?si=PciGKZJovt4TPhDp" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                </div>
+            </div>
+
+            <!-- Articles -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Tickets & Hospitality</h5>
+                            <p class="card-text text-muted">Hospitality packages and ticket phases announced. Check CAF official channels for release dates.</p>
+                            <a href="https://www.cafonline.com/" target="_blank" class="stretched-link">Learn more</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Fan Travel & City Info</h5>
+                            <p class="card-text text-muted">Official fan zones, travel advice and recommended hotels for supporters visiting Morocco 2025.</p>
+                            <a href="https://www.cafonline.com/" target="_blank" class="stretched-link">Plan your trip</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Quick info + fixtures + sponsors -->
+        <div class="col-lg-4">
+
+            <!-- Quick facts -->
+            <div class="card mb-3 accent">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Facts</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li><strong>Host:</strong> Morocco</li>
+                        <li><strong>Dates:</strong> 21 Dec 2025 – 18 Jan 2026</li>
+                        <li><strong>Teams:</strong> 24</li>
+                        <li><strong>Venues:</strong> 9 across 6 cities</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Upcoming matches (example) -->
+            <div id="fixtures" class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Upcoming matches</h5>
+                    <ul class="fixture-list list-unstyled">
+                        <li class="mb-2 fixture-item">
+                            <div class="fixture-left">
+                                <img class="fixture-flag" src="https://flagcdn.com/w40/ma.png" srcset="https://flagcdn.com/w80/ma.png 2x" alt="Morocco flag" />
+                                <span class="team-code">MOR</span>
+                            </div>
+
+                            <div class="text-muted-small ms-auto me-3">21 Dec — Rabat</div>
+
+                            <div class="fixture-right">
+                                <span class="mx-1">vs</span>
+                                <img class="fixture-flag" src="https://flagcdn.com/w40/km.png" srcset="https://flagcdn.com/w80/km.png 2x" alt="Comoros flag" />
+                                <span class="team-code">COM</span>
+                            </div>
+                        </li>
+
+                        <li class="mb-2 fixture-item">
+                            <div class="fixture-left">
+                                <img class="fixture-flag" src="https://flagcdn.com/w40/zm.png" srcset="https://flagcdn.com/w80/zm.png 2x" alt="Zambia flag" />
+                                <span class="team-code">ZAM</span>
+                            </div>
+
+                            <div class="text-muted-small ms-auto me-3">22 Dec — Casablanca</div>
+
+                            <div class="fixture-right">
+                                <span class="mx-1">vs</span>
+                                <img class="fixture-flag" src="https://flagcdn.com/w40/eg.png" srcset="https://flagcdn.com/w80/eg.png 2x" alt="Egypt flag" />
+                                <span class="team-code">EGY</span>
+                            </div>
+                        </li>
+
+                        <li class="mb-2 fixture-item">
+                            <div class="fixture-left">
+                                <img class="fixture-flag" src="https://flagcdn.com/w40/za.png" srcset="https://flagcdn.com/w80/za.png 2x" alt="South Africa flag" />
+                                <span class="team-code">RSA</span>
+                            </div>
+
+                            <div class="text-muted-small ms-auto me-3">23 Dec — Marrakech</div>
+
+                            <div class="fixture-right">
+                                <span class="mx-1">vs</span>
+                                <img class="fixture-flag" src="https://flagcdn.com/w40/dz.png" srcset="https://flagcdn.com/w80/dz.png 2x" alt="Algeria flag" />
+                                <span class="team-code">ALG</span>
+                            </div>
+                        </li>
+                    </ul>
+                    <a href="#" class="btn btn-sm btn-outline-primary">Full schedule</a>
+                </div>
+            </div>
+
+            <!-- Sponsors -->
+            <div class="card mb-3 text-center">
+                <div class="card-body">
+                    <h6>Official Partners</h6>
+                    <div class="sponsor-logos">
+                        <div class="logo"><img src="/images/totalenergies-logo.png" alt="TotalEnergies" /></div>
+                        <div class="logo"><img src="/images/images (1).png" alt="Puma" /></div>
+                        <div class="logo"><img src="/images/Orange_logo.svg.png" alt="Orange" /></div>
+                        <!-- Add more sponsors here using the same .logo wrapper -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social -->
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6>Follow CAF</h6>
+                    <div class="d-flex justify-content-center gap-2">
+                        <!-- Facebook -->
+                        <a class="social-btn" href="https://www.facebook.com/CAFOnline" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <path fill="#1877F2" d="M24 12.07C24 5.405 18.627 0 11.999 0S0 5.405 0 12.07C0 18.09 4.388 23.092 10.125 24v-8.486H7.078v-3.437h3.047V9.413c0-3.015 1.793-4.676 4.533-4.676 1.312 0 2.686.235 2.686.235v2.953h-1.513c-1.492 0-1.953.926-1.953 1.874v2.25h3.328l-.532 3.437h-2.796V24C19.612 23.092 24 18.09 24 12.07z" />
+                            </svg>
+                            <span>Facebook</span>
+                        </a>
+
+                        <!-- YouTube -->
+                        <a class="social-btn" href="https://www.youtube.com/c/CAF" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <path fill="#FF0000" d="M23.498 6.186a3.02 3.02 0 0 0-2.125-2.136C19.512 3.5 12 3.5 12 3.5s-7.512 0-9.373.55A3.02 3.02 0 0 0 .502 6.186 31.44 31.44 0 0 0 0 12a31.44 31.44 0 0 0 .502 5.814 3.02 3.02 0 0 0 2.125 2.136C4.488 20.5 12 20.5 12 20.5s7.512 0 9.373-.55a3.02 3.02 0 0 0 2.125-2.136A31.44 31.44 0 0 0 24 12a31.44 31.44 0 0 0-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                            </svg>
+                            <span>YouTube</span>
+                        </a>
+
+                        <!-- X (Twitter) -->
+                        <a class="social-btn" href="https://x.com/CAF_Online" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <path fill="#000000" d="M22.162 5.656c-.608.27-1.263.452-1.95.534.702-.42 1.24-1.086 1.493-1.88-.657.39-1.385.676-2.16.83C18.9 4.3 17.98 4 17.01 4c-1.74 0-3.152 1.41-3.152 3.146 0 .247.028.487.082.717-2.62-.13-4.947-1.387-6.504-3.3-.27.466-.425 1.006-.425 1.582 0 1.09.555 2.052 1.4 2.616-.516-.016-1-.158-1.425-.394v.04c0 1.523 1.083 2.793 2.52 3.08-.264.072-.542.11-.83.11-.203 0-.4-.02-.59-.058.402 1.255 1.567 2.17 2.948 2.197-1.08.847-2.44 1.352-3.915 1.352-.254 0-.504-.015-.75-.044 1.39.894 3.04 1.42 4.815 1.42 5.78 0 8.944-4.79 8.944-8.933 0-.136-.003-.273-.01-.408.612-.44 1.144-.99 1.566-1.62-.56.248-1.164.415-1.79.49z" />
+                            </svg>
+                            <span>X</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer CTA -->
+    <div class="row mt-4">
+        <div class="col text-center">
+            <div class="footer-cta rounded">
+                <h4 class="mb-1">Get ready for Morocco 2025</h4>
+                <p class="mb-2">Follow official channels for schedule updates and team announcements.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Optional: small script to duplicate ticker contents (so animation loops smoothly) -->
+<script>
+    // Duplicate ticker children so the animation scrolls continuously without sudden jump.
+    (function() {
+        const ticker = document.getElementById('tickerInner');
+        if (!ticker) return;
+        const children = Array.from(ticker.children);
+        children.forEach(node => {
+            const clone = node.cloneNode(true);
+            ticker.appendChild(clone);
+        });
+    })();
+</script>
