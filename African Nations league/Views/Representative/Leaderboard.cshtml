@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Top Scorers";
+    Layout = null; // standalone as requested
 }
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -24,10 +25,20 @@
         color: #222;
     }
 
+    .layout-grid {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
     .leaderboard-container {
         max-width: 1100px;
-        margin: 30px auto;
-        padding: 20px;
+        margin: 0;
+        padding: 0;
     }
 
     h2.page-title {
@@ -136,6 +147,11 @@
 
     /* Responsive */
     @@media (max-width: 767.98px) {
+        .layout-grid {
+            grid-template-columns: 1fr;
+            padding: 12px;
+        }
+
         .leaderboard-table {
             border: none;
             box-shadow: none;
@@ -159,59 +175,69 @@
     }
 </style>
 
-<div class="leaderboard-container">
-    <h2 class="page-title">🏆 Top Scorers</h2>
-    <p class="subtitle">The leading goal scorers of the tournament so far.</p>
+<div class="layout-grid">
+    <!-- Left: representative menu -->
+    <aside>
+        @await Html.PartialAsync("_RepMenu")
+    </aside>
 
-    <div class="table-responsive leaderboard-table">
-        @if (Model == null || Model.Count == 0)
-        {
-            <div class="empty-state">No scorers yet.</div>
-        }
-        else
-        {
-            <table class="table table-striped align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th style="width:60px;">#</th>
-                        <th>Team</th>
-                        <th>Player</th>
-                        <th>Goals</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (int i = 0; i < Model.Count; i++)
-                    {
-                        var item = Model[i];
-                        var rankClass = i == 0 ? "rank-1" : i == 1 ? "rank-2" : i == 2 ? "rank-3" : "";
+    <!-- Right: leaderboard -->
+    <main class="leaderboard-container" role="main" aria-labelledby="leaderboardTitle">
+        <h2 id="leaderboardTitle" class="page-title">🏆 Top Scorers</h2>
+        <p class="subtitle">The leading goal scorers of the tournament so far.</p>
 
+        <div class="table-responsive leaderboard-table">
+            @if (Model == null || Model.Count == 0)
+            {
+                <div class="empty-state">No scorers yet.</div>
+            }
+            else
+            {
+                <table class="table table-striped align-middle mb-0" aria-describedby="leaderboardTitle">
+                    <thead>
                         <tr>
-                            <td>
-                                <span class="rank-badge @rankClass">@(i + 1)</span>
-                            </td>
-                            <td>
-                                <div class="team-cell">
-                                    @if (!string.IsNullOrEmpty(item.TeamFlag))
-                                    {
-                                        <img src="@item.TeamFlag" alt="@item.TeamName" />
-                                    }
-                                    <span><strong>@item.TeamName</strong></span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="player-cell">
-                                    @if (!string.IsNullOrEmpty(item.PlayerPicture))
-                                    {
-                                        <img src="@item.PlayerPicture" alt="@item.PlayerName" />
-                                    }
-                                    <span>@item.PlayerName</span>
-                                </div>
-                            </td>
-                            <td class="goals-col">@item.Goals</td>
+                            <th style="width:60px;">#</th>
+                            <th>Team</th>
+                            <th>Player</th>
+                            <th>Goals</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </div>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            var item = Model[i];
+                            var rankClass = i == 0 ? "rank-1" : i == 1 ? "rank-2" : i == 2 ? "rank-3" : "";
+
+                            <tr>
+                                <td>
+                                    <span class="rank-badge @rankClass">@(i + 1)</span>
+                                </td>
+                                <td>
+                                    <div class="team-cell">
+                                        @if (!string.IsNullOrEmpty(item.TeamFlag))
+                                        {
+                                            <img src="@item.TeamFlag" alt="@item.TeamName" />
+                                        }
+                                        <span><strong>@item.TeamName</strong></span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="player-cell">
+                                        @if (!string.IsNullOrEmpty(item.PlayerPicture))
+                                        {
+                                            <img src="@item.PlayerPicture" alt="@item.PlayerName" />
+                                        }
+                                        <span>@item.PlayerName</span>
+                                    </div>
+                                </td>
+                                <td class="goals-col">@item.Goals</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -277,6 +277,148 @@ namespace African_Nations_league.Controllers
 
             return RedirectToAction("Login", "Auth");
         }
+        public async Task<IActionResult> Bracket()
+        {
+
+            // 1) Récupérer fixtures, teams et users
+            var fixtures = await _mongo.GetAllFixturesAsync();
+            var teams = await _mongo.GetAllTeamsAsync();
+            var users = await _mongo.GetAllUsersAsync();
+
+            // 2) Construire une liste unifiée de "records" qui ont les champs dont on a besoin
+            //    (Id, TeamId, TeamName, FlagUrl) — venant soit de teams soit de users.
+            var unified = new List<(string Id, string TeamId, string TeamName, string FlagUrl)>();
+
+            // From teams collection
+            foreach (var t in teams)
+            {
+                string flag = null;
+                // essaye les noms de propriété possibles présents sur Teams
+                try { flag = t.GetType().GetProperty("FlagUrl")?.GetValue(t)?.ToString(); } catch { }
+                if (string.IsNullOrEmpty(flag))
+                {
+                    try { flag = t.GetType().GetProperty("TeamFlag")?.GetValue(t)?.ToString(); } catch { }
+                }
+                if (string.IsNullOrEmpty(flag))
+                {
+                    try { flag = t.GetType().GetProperty("Flag")?.GetValue(t)?.ToString(); } catch { }
+                }
+
+                unified.Add((Id: t.Id, TeamId: t.TeamId, TeamName: t.TeamName, FlagUrl: flag));
+            }
+
+            // From users collection (many of your users store a team they manage — include them)
+            foreach (var u in users)
+            {
+                // Some users may not have TeamName/TeamFlag — guard
+                var teamName = u.TeamName;
+                if (string.IsNullOrEmpty(teamName) && !string.IsNullOrEmpty(u.TeamId))
+                {
+                    // fallback: maybe we only have TeamId
+                    teamName = u.TeamId;
+                }
+
+                string flag = null;
+                try { flag = u.GetType().GetProperty("TeamFlag")?.GetValue(u)?.ToString(); } catch { }
+                if (string.IsNullOrEmpty(flag))
+                {
+                    try { flag = u.GetType().GetProperty("FlagUrl")?.GetValue(u)?.ToString(); } catch { }
+                }
+                // add only if we have a team identity (TeamId or TeamName)
+                if (!string.IsNullOrEmpty(u.TeamId) || !string.IsNullOrEmpty(teamName))
+                {
+                    unified.Add((Id: u.Id, TeamId: u.TeamId, TeamName: teamName, FlagUrl: flag));
+                }
+            }
+
+            // 3) Build fast lookup dictionaries (case-insensitive for names)
+            var byId = unified.Where(x => !string.IsNullOrEmpty(x.Id)).ToDictionary(x => x.Id, x => x, StringComparer.OrdinalIgnoreCase);
+            var byTeamId = unified.Where(x => !string.IsNullOrEmpty(x.TeamId)).ToDictionary(x => x.TeamId, x => x, StringComparer.OrdinalIgnoreCase);
+            var byName = unified.Where(x => !string.IsNullOrEmpty(x.TeamName)).ToDictionary(x => x.TeamName.ToLowerInvariant(), x => x);
+
+            // helper local functions
+            (string Id, string TeamId, string TeamName, string FlagUrl)? FindUnifiedRecord(string key)
+            {
+                if (string.IsNullOrEmpty(key)) return null;
+
+                if (byId.TryGetValue(key, out var r1)) return r1;
+                if (byTeamId.TryGetValue(key, out var r2)) return r2;
+                var low = key.ToLowerInvariant();
+                if (byName.TryGetValue(low, out var r3)) return r3;
+
+                // try partial match on team name
+                var partial = unified.FirstOrDefault(u => !string.IsNullOrEmpty(u.TeamName) && u.TeamName.ToLowerInvariant().Contains(low));
+                if (!partial.Equals(default((string, string, string, string)))) return partial;
+
+                return null;
+            }
+
+            string PickFlag((string Id, string TeamId, string TeamName, string FlagUrl)? rec)
+            {
+                if (rec == null) return null;
+                return rec.Value.FlagUrl; // peut être null — caller gérera le fallback visuel
+            }
+
+            // 4) Construire les viewmodels de matches (remplace les BuildMatch précédents)
+            BracketMatchViewModel BuildMatch(Fixture f)
+            {
+                var recA = FindUnifiedRecord(f.TeamAId) ?? FindUnifiedRecord(f.TeamAName);
+                var recB = FindUnifiedRecord(f.TeamBId) ?? FindUnifiedRecord(f.TeamBName);
+
+                var teamAName = !string.IsNullOrEmpty(f.TeamAName) ? f.TeamAName : recA?.TeamName ?? (f.TeamAId ?? "Team A Waiting");
+                var teamBName = !string.IsNullOrEmpty(f.TeamBName) ? f.TeamBName : recB?.TeamName ?? (f.TeamBId ?? "Team B Waiting");
+
+                return new BracketMatchViewModel
+                {
+                    FixtureId = f.Id,
+                    Phase = f.Phase,
+                    TeamAId = f.TeamAId,
+                    TeamAName = teamAName,
+                    TeamAFlag = PickFlag(recA),
+                    ScoreA = f.ScoreA,
+                    TeamBId = f.TeamBId,
+                    TeamBName = teamBName,
+                    TeamBFlag = PickFlag(recB),
+                    ScoreB = f.ScoreB,
+                    Status = f.Status,
+                    Events = f.Events ?? new List<GoalEvent>()
+                };
+            }
+
+            // 5) Sélectionner et ordonner pour le bracket (comme avant)
+            var quarterList = fixtures
+                .Where(f => string.IsNullOrEmpty(f.Phase) || string.Equals(f.Phase, "Quarts de finale", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f => f.CreatedAt)
+                .Select(f => BuildMatch(f))
+                .ToList();
+
+            var semiList = fixtures
+                .Where(f => string.Equals(f.Phase, "Demi-finales", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f => f.CreatedAt)
+                .Select(f => BuildMatch(f))
+                .ToList();
+
+            var final = fixtures.FirstOrDefault(f => string.Equals(f.Phase, "Finale", StringComparison.OrdinalIgnoreCase));
+            BracketMatchViewModel finalVm = final != null ? BuildMatch(final) : null;
+
+            var vm = new BracketViewModel
+            {
+                QuarterMatches = quarterList,
+                SemiMatches = semiList,
+                FinalMatch = finalVm
+            };
+
+            if (vm.FinalMatch != null && (vm.FinalMatch.Status == "Finished" || vm.FinalMatch.Status == "Played"))
+            {
+                vm.Champion = vm.FinalMatch.ScoreA > vm.FinalMatch.ScoreB ? vm.FinalMatch.TeamAName : vm.FinalMatch.TeamBName;
+            }
+
+            // Optionnel: si tu veux debuguer quelles équipes n'ont pas de Flag
+            // var missing = unified.Where(u => string.IsNullOrEmpty(u.FlagUrl)).Select(u => u.TeamName).ToList();
+            // TempData["MissingFlags"] = string.Join(", ", missing);
+
+            return View("Bracket", vm);
+        }
     }
 
     // small viewmodel for profile page

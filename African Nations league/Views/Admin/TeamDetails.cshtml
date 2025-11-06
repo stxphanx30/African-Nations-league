@@ -2,74 +2,456 @@
 
 @{
     ViewData["Title"] = "Team details - " + (Model.TeamName ?? "Team");
+    Layout = null; // standalone as requested
 }
 
-<div class="row">
-    <div class="col-3">
-        @await Html.PartialAsync("_AdminMenu")
-    </div>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-    <div class="col-9">
-        <div class="card mb-3">
-            <div class="card-body d-flex align-items-center">
+<style>
+    :root {
+        --caf-green: #126035;
+        --caf-gold: #f1c232;
+        --caf-red: #c8102e;
+        --muted: #6c757d;
+        --page-bg: #fbfcfb;
+        --card-bg: #ffffff;
+        --shadow: 0 10px 30px rgba(12,20,30,0.06);
+        --radius: 12px;
+    }
+
+    body {
+        background: var(--page-bg);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #222;
+    }
+
+    .layout-grid {
+        max-width: 1200px;
+        margin: 18px auto;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
+    .team-details-container {
+        padding: 0 6px;
+    }
+
+    .top-card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98));
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        border: 2px solid rgba(200,16,46,0.06);
+        overflow: hidden;
+        position: relative;
+    }
+
+        .top-card .card-body {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            padding: 18px;
+        }
+
+    .team-flag-lg {
+        width: 120px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .team-meta h3 {
+        margin: 0;
+        color: var(--caf-green);
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .team-meta small {
+        color: var(--muted);
+        font-weight: 600;
+    }
+
+    .team-stats {
+        display: flex;
+        gap: 14px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+    }
+
+    .stat-pill {
+        background: #fff;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-weight: 700;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 6px 18px rgba(12,20,30,0.03);
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+        .stat-pill .label {
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .stat-pill .value {
+            color: #111;
+            font-weight: 800;
+        }
+
+    /* Players cards grid */
+    .players-grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .player-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+        border: 2px solid rgba(200,16,46,0.04);
+        box-shadow: 0 8px 24px rgba(12,20,30,0.03);
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+
+        .player-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 18px 40px rgba(12,20,30,0.08);
+        }
+
+    .player-top {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        width: 100%;
+    }
+
+    .player-photo {
+        width: 84px;
+        height: 84px;
+        border-radius: 10px;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 1px solid rgba(0,0,0,0.04);
+        box-shadow: 0 8px 20px rgba(12,20,30,0.04);
+    }
+
+    .player-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .player-name {
+        font-weight: 800;
+        color: var(--caf-green);
+        font-size: 1.02rem;
+    }
+
+    .player-pos {
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .player-bottom {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .player-rating {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 800;
+        background: linear-gradient(180deg,#fff,#fff);
+        border: 1px solid rgba(0,0,0,0.06);
+        min-width: 60px;
+        text-align: center;
+    }
+
+    .player-actions {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+    }
+
+    .back-row {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .players-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .layout-grid {
+            grid-template-columns: 1fr;
+            padding: 12px;
+        }
+
+        .top-card .card-body {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .team-flag-lg {
+            width: 100%;
+            max-width: 260px;
+            height: 72px;
+        }
+
+        .players-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .player-photo {
+            width: 72px;
+            height: 72px;
+            border-radius: 8px;
+        }
+    }
+</style>
+
+<div class="layout-grid">
+
+    <!-- LEFT: representative menu partial (keeps your _RepMenu unchanged) -->
+    <aside>
+        @await Html.PartialAsync("_AdminMenu")
+    </aside>
+
+    <!-- RIGHT: main content -->
+    <div class="team-details-container">
+        <div class="top-card position-relative @(string.Equals(Model.TeamName, "Morocco", System.StringComparison.OrdinalIgnoreCase) ? "morocco" : "")">
+            <div class="card-body">
                 @if (!string.IsNullOrEmpty(Model.TeamFlag))
                 {
-                    <img src="@Model.TeamFlag" alt="@Model.TeamName" style="width:100px;height:60px;object-fit:cover;margin-right:20px" />
+                    <img src="@Model.TeamFlag" alt="@Model.TeamName" class="team-flag-lg" onerror="this.src='/images/placeholder-flag.png';" />
                 }
-                <div>
+                else
+                {
+                    <div class="team-flag-lg" style="display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#aaa;">No flag</div>
+                }
+
+                <div class="team-meta">
                     <h3>@Model.TeamName <small class="text-muted">(@Model.TeamId)</small></h3>
 
-                    @if (!string.IsNullOrEmpty(Model.ManagerName))
-                    {
-                        <div><strong>Manager:</strong> @Model.ManagerName</div>
-                    }
-
-                    <div><strong>Rating:</strong> @(Model.TeamRating.ToString("F1"))</div>
-                    <div><strong>Players:</strong> @(Model.Squad?.Count ?? 0)</div>
+                    <div class="team-stats">
+                        @if (!string.IsNullOrEmpty(Model.ManagerName))
+                        {
+                            <div class="stat-pill">
+                                <span class="label">Manager</span>
+                                <span class="value">@Model.ManagerName</span>
+                            </div>
+                        }
+                        <div class="stat-pill">
+                            <span class="label">Rating</span>
+                            <span class="value">@Model.TeamRating.ToString("F1")</span>
+                        </div>
+                        <div class="stat-pill">
+                            <span class="label">Players</span>
+                            <span class="value">@(Model.Squad?.Count ?? 0)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <h4>Players</h4>
-        <table class="table table-sm">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>Name</th>
-                    <th>Position</th>
-                    <th>Detailed</th>
-                    <th>Rating</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.Squad != null && Model.Squad.Count > 0)
-                {
-                    foreach (var p in Model.Squad)
-                    {
-                        <tr>
-                            <td>
-                                <img src="@(string.IsNullOrEmpty(p.ImagePath) ? "/images/placeholder.png" : p.ImagePath)"
-                                     alt="@p.PlayerName"
-                                     style="width:48px;height:48px;object-fit:cover;border-radius:4px" />
-                            </td>
-                            <td>@p.PlayerName</td>
-                            <td>@p.Position</td>
-                            <td>@p.DetailedPosition</td>
-                            <td>@p.Rating</td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr><td colspan="5">No players available.</td></tr>
-                }
-            </tbody>
-        </table>
+        <!-- buttons -->
+        <div class="back-row">
+            <a asp-action="Teams" asp-controller="Admin" class="btn btn-outline-secondary">Back to teams</a>
+            <a asp-action="Index" asp-controller="Home" class="btn btn-sm" style="background:var(--caf-green); color:#fff; border-radius:8px;">Home</a>
+        </div>
 
-        <div class="mt-3">
-            <a asp-action="Teams" asp-controller="Admin" class="btn btn-secondary">Back to teams</a>
-            <!-- Optional edit button if Admin can edit this team -->
-            <a asp-action="EditTeam" asp-controller="Admin" asp-route-id="@Model.Id" class="btn btn-warning ms-2">Edit team</a>
+        <h4 style="color:var(--caf-green); font-weight:800; margin-top:6px;">Players</h4>
+
+        <div class="players-grid">
+            @if (Model.Squad != null && Model.Squad.Count > 0)
+            {
+                foreach (var p in Model.Squad)
+                {
+                    // use PlayerId if available as modal id, else fallback to a GUID to avoid duplicate IDs
+                    var pid = (p.PlayerName ?? Guid.NewGuid().ToString()).ToString();
+                    <div class="player-card">
+                        <div class="player-top">
+                            <img class="player-photo" src="@(string.IsNullOrEmpty(p.ImagePath) ? "/images/placeholder.png" : p.ImagePath)" alt="@p.PlayerName" onerror="this.src='/images/placeholder-player.png';" />
+                            <div class="player-meta">
+                                <div class="player-name">@p.PlayerName</div>
+                                <div class="player-pos">@p.Position</div>
+                                <div class="player-pos" style="font-weight:600;color:var(--muted);">@p.DetailedPosition</div>
+                            </div>
+                        </div>
+
+                        <div class="player-bottom">
+                            <div class="player-actions">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary view-player-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#playerModal"
+                                        data-player-id="@pid"
+                                        data-player-name="@p.PlayerName"
+                                        data-player-pos="@p.Position"
+                                        data-player-detailed="@p.DetailedPosition"
+                                        data-player-image="@(string.IsNullOrEmpty(p.ImagePath) ? "/images/placeholder.png" : p.ImagePath)"
+                                        data-player-rating="@p.Rating">
+                                    View
+                                </button>
+
+                                <a asp-controller="Representative"
+                                   asp-action="PlayerDetails"
+                                   asp-route-id="@p.PlayerName"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Profile
+                                </a>
+                            </div>
+
+                            <div style="margin-left:auto;">
+                                <div class="player-rating">@p.Rating</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="grid-column:1/-1; text-align:center; color:var(--muted); padding:18px; border-radius:8px; border:1px dashed rgba(18,96,53,0.08); background:#fff;">
+                    No players available.
+                </div>
+            }
         </div>
     </div>
 </div>
+
+<!-- Modal + script AJAX (calls Representative controller for extra info) -->
+<div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom:1px solid rgba(0,0,0,0.06);">
+                <h5 class="modal-title" id="playerModalLabel">Player</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="d-flex gap-3">
+                    <img id="playerModalImage" src="/images/placeholder.png" alt="player" style="width:140px;height:140px;object-fit:cover;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.06)" />
+                    <div style="flex:1">
+                        <h5 id="playerModalName" style="color:var(--caf-green);font-weight:800;margin:0">Player name</h5>
+                        <div id="playerModalPosition" class="text-muted" style="margin-top:6px">Position</div>
+                        <div id="playerModalDetailed" class="text-muted" style="margin-top:6px">Detailed position</div>
+
+                        <div style="margin-top:12px; display:flex; gap:12px; align-items:center;">
+                            <div style="font-weight:800;" id="playerModalRating">8.2</div>
+                            <div class="text-muted" style="font-size:0.9rem;">rating</div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div id="playerModalExtra">
+                    <p class="text-muted small">Loading extra info…</p>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="border-top:1px solid rgba(0,0,0,0.04);">
+                <a id="playerModalProfileLink" href="#" class="btn btn-sm btn-outline-secondary" target="_blank">Full profile</a>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+      const playerModal = document.getElementById('playerModal');
+      if (!playerModal) return;
+
+      function setText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text ?? '';
+      }
+
+      playerModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        if (!button) return;
+
+        const id = button.getAttribute('data-player-id') || '';
+        const name = button.getAttribute('data-player-name') || '';
+        const pos = button.getAttribute('data-player-pos') || '';
+        const detailed = button.getAttribute('data-player-detailed') || '';
+        const img = button.getAttribute('data-player-image') || '/images/placeholder.png';
+        const rating = button.getAttribute('data-player-rating') || '';
+
+        setText('playerModalLabel', name);
+        setText('playerModalName', name);
+        setText('playerModalPosition', pos);
+        setText('playerModalDetailed', detailed);
+        document.getElementById('playerModalImage').src = img;
+        setText('playerModalRating', rating);
+
+        const profileLink = document.getElementById('playerModalProfileLink');
+        if (profileLink) {
+          // point to Representative controller PlayerDetails action
+          profileLink.href = id ? ('/Representative/PlayerDetails/' + id) : '#';
+        }
+
+        const extraContainer = document.getElementById('playerModalExtra');
+        if (!extraContainer) return;
+        if (!id) {
+          extraContainer.innerHTML = '<p class="text-muted small">No extra info.</p>';
+          return;
+        }
+
+        extraContainer.innerHTML = '<p class="text-muted small">Loading extra info…</p>';
+
+        // fetch extra info from Representative controller (change only view-side)
+        fetch('/Representative/PlayerExtra/' + encodeURIComponent(id), {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.text();
+        })
+        .then(html => {
+          extraContainer.innerHTML = html || '<p class="text-muted small">No additional info.</p>';
+        })
+        .catch(err => {
+          console.warn('Failed to load extra player info:', err);
+          extraContainer.innerHTML = '<p class="text-muted small">Additional info unavailable.</p>';
+        });
+      });
+
+      playerModal.addEventListener('hidden.bs.modal', function () {
+        const extraContainer = document.getElementById('playerModalExtra');
+        if (extraContainer) extraContainer.innerHTML = '<p class="text-muted small">No extra info.</p>';
+      });
+    })();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

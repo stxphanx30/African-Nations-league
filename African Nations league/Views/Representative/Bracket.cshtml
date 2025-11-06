@@ -1,0 +1,728 @@
+﻿@model African_Nations_league.Models.BracketViewModel
+@{
+    ViewData["Title"] = "Bracket - Road to Final";
+    Layout = null; // standalone as requested
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --caf-gold: #f3c24b;
+        --caf-gold-2: #ffd97f;
+        --caf-dark: #0f5a3f;
+        --bg-1: #072f22;
+        --bg-2: #0f5a3f;
+        --white: #ffffff;
+    }
+
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    /* layout grid: left menu + main bracket */
+    .layout-grid {
+        max-width: 1280px;
+        margin: 18px auto;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
+    .rep-aside {
+        /* keeps partial tidy */
+    }
+
+    .bracket-outer {
+        padding: 0; /* parent spacing handled by layout-grid */
+    }
+
+    .bracket-hero {
+        background: linear-gradient(135deg, rgba(8,32,24,0.40) 0%, rgba(8,32,24,0.36) 100%), url('/images/2025_Africa_Cup_of_Nations_logo.svg.png') right center / 220px no-repeat;
+        background-color: var(--bg-1);
+        color: var(--white);
+        padding: 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        box-shadow: 0 12px 30px rgba(2,10,6,0.28);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .bracket-hero .hero-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bracket-hero h1 {
+            margin: 0;
+            font-size: 1.18rem;
+            font-weight: 900;
+            letter-spacing: 0.6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bracket-hero p {
+            margin: 4px 0 0 0;
+            color: rgba(255,255,255,0.9);
+            font-weight: 700;
+        }
+
+    .bracket-wrap {
+        padding: 22px 20px;
+        background: linear-gradient(180deg, rgba(15,90,63,0.95) 0%, rgba(8,63,43,0.96) 100%), url('/images/2025_Africa_Cup_of_Nations_logo.svg.png') center / 520px no-repeat;
+        border-radius: 12px;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+        margin-top: 18px;
+        box-shadow: 0 16px 40px rgba(2,10,6,0.28);
+        border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .road-title {
+        text-align: center;
+        font-weight: 900;
+        font-size: 1.05rem;
+        color: var(--caf-gold);
+        margin-bottom: 12px;
+    }
+
+    .bracket-grid {
+        display: grid;
+        grid-template-columns: 1fr 0.9fr 320px 0.9fr 1fr;
+        grid-auto-rows: auto;
+        gap: 14px 18px;
+        align-items: start;
+        position: relative;
+        z-index: 2;
+        padding: 6px 6px;
+    }
+
+    /* uniform match sizing */
+    .match {
+        background: #fff;
+        color: #111;
+        border-radius: 10px;
+        padding: 12px;
+        min-width: 160px;
+        max-width: 100%;
+        width: 100%;
+        box-shadow: 0 8px 18px rgba(0,0,0,0.14);
+        border: 1px solid rgba(0,0,0,0.06);
+        position: relative;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        min-height: 86px; /* uniform height so all boxes look the same */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+        .match.small {
+            padding: 8px;
+            min-height: 72px;
+        }
+
+    .team {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    .flag {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(0,0,0,0.06);
+        flex-shrink: 0;
+    }
+
+    .team-name {
+        font-weight: 700;
+        font-size: 0.95rem;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .score {
+        margin-left: auto;
+        font-weight: 800;
+        font-size: 1.02rem;
+        color: #111;
+        flex-shrink: 0;
+    }
+
+    .winner {
+        background: linear-gradient(90deg,#fff9ec,#fff5d6);
+        border: 1px solid #f3d48b;
+    }
+
+    .final-card.match {
+        max-width: 360px;
+        margin: 0 auto;
+        min-height: 86px;
+    }
+
+    .cup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        grid-row: 1 / span 3;
+        text-align: center;
+    }
+
+        .cup img {
+            width: 180px; /* increased cup size */
+            display: block;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 12px 28px rgba(0,0,0,0.35));
+        }
+
+        .cup .final-title {
+            font-weight: 900;
+            color: var(--caf-gold);
+            font-size: 1.05rem;
+        }
+
+    /* positions */
+    .q0 {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .q1 {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    .s0 {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: center;
+    }
+
+    .center {
+        grid-column: 3;
+        grid-row: 2;
+    }
+
+    .s1 {
+        grid-column: 4;
+        grid-row: 2;
+        align-self: center;
+    }
+
+    .q2 {
+        grid-column: 5;
+        grid-row: 1;
+    }
+
+    .q3 {
+        grid-column: 5;
+        grid-row: 3;
+    }
+
+    /* connectors svg stays inside */
+    #connectorsSvg {
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    @@media (max-width: 1100px) {
+        .bracket-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            padding: 0;
+        }
+
+        .q0, .q1, .s0, .center, .s1, .q2, .q3 {
+            grid-column: 1;
+            grid-row: auto;
+        }
+
+        .cup img {
+            width: 140px;
+        }
+
+        .final-card.match {
+            max-width: 100%;
+        }
+
+        .match {
+            min-width: 100%;
+        }
+
+        .bracket-wrap {
+            padding-left: 14px;
+            padding-right: 14px;
+            background-size: 420px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .bracket-hero {
+            padding: 14px;
+            background-size: 160px;
+        }
+
+            .bracket-hero h1 {
+                font-size: 1rem;
+            }
+
+        .cup img {
+            width: 110px;
+        }
+
+        .bracket-wrap {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+    }
+</style>
+
+<div class="layout-grid">
+    <!-- left: representative menu partial -->
+    <aside class="rep-aside">
+        @await Html.PartialAsync("_RepMenu")
+    </aside>
+
+    <!-- right: bracket content -->
+    <div class="bracket-outer">
+        <div class="bracket-hero" role="banner" aria-label="CAF 2025 hero">
+            <div class="hero-left">
+                <h1>CAF AFRICA CUP OF NATIONS 2025</h1>
+                <p>ROAD TO FINAL — interactive bracket</p>
+            </div>
+            <div class="hero-right" style="min-width:84px; display:flex;justify-content:center;align-items:center;">
+                <img src="/images/totalenergies-logo.png" alt="partner" style="height:48px;object-fit:contain" />
+            </div>
+        </div>
+
+        <div class="bracket-wrap mt-3" id="bracketWrap" aria-live="polite">
+            <div class="road-title">ROAD TO FINAL</div>
+
+            <!-- connectors -->
+            <svg id="connectorsSvg" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;" preserveAspectRatio="none" aria-hidden="true"></svg>
+
+            <div class="bracket-grid" id="bracketGrid">
+                <!-- Q0 -->
+                <div class="q0" id="q0">
+                    <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts</div>
+                    @{
+                        var m = Model.QuarterMatches?.ElementAtOrDefault(0);
+                    }
+                    @if (m != null)
+                    {
+                        var wA = (m.ScoreA > m.ScoreB) && (m.Status == "Finished" || m.Status == "Played");
+                        var wB = (m.ScoreB > m.ScoreA) && (m.Status == "Finished" || m.Status == "Played");
+                        <div class="match @(wA ? "winner" : wB ? "winner" : "")" id="match-q0" role="group" aria-label="Quarter match 0">
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m.TeamAFlag))
+                                {
+                                    <img src="@m.TeamAFlag" class="flag" alt="@m.TeamAName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m.TeamAName) ? m.TeamAName : "Team A waiting")</div>
+                                <div class="score">@m.ScoreA</div>
+                            </div>
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m.TeamBFlag))
+                                {
+                                    <img src="@m.TeamBFlag" class="flag" alt="@m.TeamBName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m.TeamBName) ? m.TeamBName : "Team B waiting")</div>
+                                <div class="score">@m.ScoreB</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match small">Waiting for match</div>
+                    }
+                </div>
+
+                <!-- S0 -->
+                <div class="s0" id="s0">
+                    <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Demi-finales</div>
+                    @{
+                        var sm0 = Model.SemiMatches?.ElementAtOrDefault(0);
+                    }
+                    @if (sm0 != null)
+                    {
+                        var wA = (sm0.ScoreA > sm0.ScoreB) && (sm0.Status == "Finished" || sm0.Status == "Played");
+                        var wB = (sm0.ScoreB > sm0.ScoreA) && (sm0.Status == "Finished" || sm0.Status == "Played");
+                        <div class="match @(wA ? "winner" : wB ? "winner" : "")" id="match-s0" style="width:100%;max-width:320px;" role="group" aria-label="Semi match 0">
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(sm0.TeamAFlag))
+                                {
+                                    <img src="@sm0.TeamAFlag" class="flag" alt="@sm0.TeamAName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(sm0.TeamAName) ? sm0.TeamAName : "Waiting")</div>
+                                <div class="score">@sm0.ScoreA</div>
+                            </div>
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(sm0.TeamBFlag))
+                                {
+                                    <img src="@sm0.TeamBFlag" class="flag" alt="@sm0.TeamBName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(sm0.TeamBName) ? sm0.TeamBName : "Waiting")</div>
+                                <div class="score">@sm0.ScoreB</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match small" id="match-s0">Waiting for semi</div>
+                    }
+                </div>
+
+                <!-- center cup/final -->
+                <div class="center cup" id="center">
+                    <img src="/Images/solid_color_003366_dark_blue_background_template_square_sticker-r286e768c2b804342bb4172e8c2653c26_v9wf3_8byvr_307.png" alt="cup" onerror="this.src='/Images/placeholder_cup.png'" />
+                    <div class="final-title">FINALE</div>
+
+                    @if (Model.FinalMatch != null)
+                    {
+                        var fm = Model.FinalMatch;
+                        <div class="match" id="match-final" role="group" aria-label="Final match"
+                             style="width: 220px; margin-top: 10px; margin-left: auto; margin-right: auto; padding: 10px 12px; min-height: 86px;">
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(fm.TeamAFlag))
+                                {
+                                    <img src="@fm.TeamAFlag" class="flag" alt="@fm.TeamAName flag" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(0,0,0,0.06);" />
+                                }
+                                <div class="team-name" style="font-weight: 700; font-size: 0.95rem;">@(!string.IsNullOrEmpty(fm.TeamAName) ? fm.TeamAName : "Waiting")</div>
+                                <div class="score" style="margin-left: auto; font-weight: 800; font-size: 1rem;">@fm.ScoreA</div>
+                            </div>
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(fm.TeamBFlag))
+                                {
+                                    <img src="@fm.TeamBFlag" class="flag" alt="@fm.TeamBName flag" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(0,0,0,0.06);" />
+                                }
+                                <div class="team-name" style="font-weight: 700; font-size: 0.95rem;">@(!string.IsNullOrEmpty(fm.TeamBName) ? fm.TeamBName : "Waiting")</div>
+                                <div class="score" style="margin-left: auto; font-weight: 800; font-size: 1rem;">@fm.ScoreB</div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.Champion))
+                        {
+                            <div style="margin-top: 8px; font-weight: 800; color: var(--caf-gold); text-align: center;">
+                                Champion : @Model.Champion
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="match small" id="match-final" style="width: 220px; margin: auto;">Waiting for final</div>
+                    }
+                </div>
+
+                <!-- S1 -->
+                <div class="s1" id="s1">
+                    <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Demi-finales</div>
+                    @{
+                        var sm1 = Model.SemiMatches?.ElementAtOrDefault(1);
+                    }
+                    @if (sm1 != null)
+                    {
+                        var wA = (sm1.ScoreA > sm1.ScoreB) && (sm1.Status == "Finished" || sm1.Status == "Played");
+                        var wB = (sm1.ScoreB > sm1.ScoreA) && (sm1.Status == "Finished" || sm1.Status == "Played");
+                        <div class="match @(wA ? "winner" : wB ? "winner" : "")" id="match-s1" style="width:100%;max-width:320px;" role="group" aria-label="Semi match 1">
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(sm1.TeamAFlag))
+                                {
+                                    <img src="@sm1.TeamAFlag" class="flag" alt="@sm1.TeamAName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(sm1.TeamAName) ? sm1.TeamAName : "Waiting")</div>
+                                <div class="score">@sm1.ScoreA</div>
+                            </div>
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(sm1.TeamBFlag))
+                                {
+                                    <img src="@sm1.TeamBFlag" class="flag" alt="@sm1.TeamBName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(sm1.TeamBName) ? sm1.TeamBName : "Waiting")</div>
+                                <div class="score">@sm1.ScoreB</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match small" id="match-s1">Waiting for semi</div>
+                    }
+                </div>
+
+                <!-- Q2 -->
+                <div class="q2" id="q2">
+                    <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts</div>
+                    @{
+                        var m2 = Model.QuarterMatches?.ElementAtOrDefault(2);
+                    }
+                    @if (m2 != null)
+                    {
+                        var wA = (m2.ScoreA > m2.ScoreB) && (m2.Status == "Finished" || m2.Status == "Played");
+                        var wB = (m2.ScoreB > m2.ScoreA) && (m2.Status == "Finished" || m2.Status == "Played");
+                        <div class="match @(wA ? "winner" : wB ? "winner" : "")" id="match-q2">
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m2.TeamAFlag))
+                                {
+                                    <img src="@m2.TeamAFlag" class="flag" alt="@m2.TeamAName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m2.TeamAName) ? m2.TeamAName : "Team A waiting")</div>
+                                <div class="score">@m2.ScoreA</div>
+                            </div>
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m2.TeamBFlag))
+                                {
+                                    <img src="@m2.TeamBFlag" class="flag" alt="@m2.TeamBName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m2.TeamBName) ? m2.TeamBName : "Team B waiting")</div>
+                                <div class="score">@m2.ScoreB</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match small">Waiting for match</div>
+                    }
+                </div>
+
+                <!-- Q1 -->
+                <div class="q1" id="q1">
+                    <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts</div>
+                    @{
+                        var m1 = Model.QuarterMatches?.ElementAtOrDefault(1);
+                    }
+                    @if (m1 != null)
+                    {
+                        var wA = (m1.ScoreA > m1.ScoreB) && (m1.Status == "Finished" || m1.Status == "Played");
+                        var wB = (m1.ScoreB > m1.ScoreA) && (m1.Status == "Finished" || m1.Status == "Played");
+                        <div class="match @(wA ? "winner" : wB ? "winner" : "")" id="match-q1">
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m1.TeamAFlag))
+                                {
+                                    <img src="@m1.TeamAFlag" class="flag" alt="@m1.TeamAName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m1.TeamAName) ? m1.TeamAName : "Team A waiting")</div>
+                                <div class="score">@m1.ScoreA</div>
+                            </div>
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m1.TeamBFlag))
+                                {
+                                    <img src="@m1.TeamBFlag" class="flag" alt="@m1.TeamBName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m1.TeamBName) ? m1.TeamBName : "Team B waiting")</div>
+                                <div class="score">@m1.ScoreB</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match small">Waiting for match</div>
+                    }
+                </div>
+
+                <!-- Q3 -->
+                <div class="q3" id="q3">
+                    <div style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--caf-gold)">Quarts</div>
+                    @{
+                        var m3 = Model.QuarterMatches?.ElementAtOrDefault(3);
+                    }
+                    @if (m3 != null)
+                    {
+                        var wA = (m3.ScoreA > m3.ScoreB) && (m3.Status == "Finished" || m3.Status == "Played");
+                        var wB = (m3.ScoreB > m3.ScoreA) && (m3.Status == "Finished" || m3.Status == "Played");
+                        <div class="match @(wA ? "winner" : wB ? "winner" : "")" id="match-q3">
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m3.TeamAFlag))
+                                {
+                                    <img src="@m3.TeamAFlag" class="flag" alt="@m3.TeamAName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m3.TeamAName) ? m3.TeamAName : "Team A waiting")</div>
+                                <div class="score">@m3.ScoreA</div>
+                            </div>
+                            <div class="team">
+                                @if (!string.IsNullOrEmpty(m3.TeamBFlag))
+                                {
+                                    <img src="@m3.TeamBFlag" class="flag" alt="@m3.TeamBName flag" />
+                                }
+                                <div class="team-name">@(!string.IsNullOrEmpty(m3.TeamBName) ? m3.TeamBName : "Team B waiting")</div>
+                                <div class="score">@m3.ScoreB</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match small"> Waiting for match</div>
+                    }
+                </div>
+            </div>
+
+            <!-- note removed as requested -->
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const svg = document.getElementById('connectorsSvg');
+        const wrap = document.getElementById('bracketWrap');
+
+        function ensureGradient(){
+            if (svg.querySelector('#goldGrad')) return;
+            const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+            const grad = document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
+            grad.setAttribute('id','goldGrad');
+            grad.setAttribute('x1','0%'); grad.setAttribute('x2','100%');
+            const stop1 = document.createElementNS('http://www.w3.org/2000/svg','stop'); stop1.setAttribute('offset','0%'); stop1.setAttribute('stop-color','#f3c24b');
+            const stop2 = document.createElementNS('http://www.w3.org/2000/svg','stop'); stop2.setAttribute('offset','100%'); stop2.setAttribute('stop-color','#ffd97f');
+            grad.appendChild(stop1); grad.appendChild(stop2);
+            defs.appendChild(grad);
+            svg.appendChild(defs);
+        }
+
+        function clearSvg(){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+
+        function pt(x,y){ return ${x},${y}; }
+
+        function drawLines(){
+            ensureGradient();
+            // preserve defs
+            let defs = svg.querySelector('defs');
+            clearSvg();
+            if (defs) svg.appendChild(defs);
+
+            const wrapRect = wrap.getBoundingClientRect();
+            const width = Math.max(100, Math.round(wrapRect.width));
+            const height = Math.max(100, Math.round(wrapRect.height));
+            svg.setAttribute('width', width);
+            svg.setAttribute('height', height);
+            svg.setAttribute('viewBox', 0 0 ${width} ${height});
+            svg.style.left = '0px';
+            svg.style.top = '0px';
+
+            // helper: center of element relative to wrap
+            function center(el){
+                const r = el.getBoundingClientRect();
+                return {
+                    x: (r.left - wrapRect.left) + r.width/2,
+                    y: (r.top - wrapRect.top) + r.height/2,
+                    rect: r
+                };
+            }
+
+            // we will draw left side as:
+            // vertical line from center of q0 to center of q1 (same X)
+            // horizontal line from midpoint of that vertical to center of s0
+            // horizontal from s0 center to final center
+            // same mirrored on right
+
+            const ids = {
+                q0: 'match-q0', q1: 'match-q1',
+                q2: 'match-q2', q3: 'match-q3',
+                s0: 'match-s0', s1: 'match-s1',
+                final: 'match-final'
+            };
+
+            function drawSide(topId, bottomId, semiId){
+                const topEl = document.getElementById(topId);
+                const bottomEl = document.getElementById(bottomId);
+                const semiEl = document.getElementById(semiId);
+                const finalEl = document.getElementById(ids.final);
+
+                if (!topEl || !bottomEl || !semiEl || !finalEl) return;
+
+                const a = center(topEl);
+                const b = center(bottomEl);
+                const s = center(semiEl);
+                const f = center(finalEl);
+
+                // choose common X for vertical: use right edge of quarter boxes for left side,
+                // or left edge for right side. We'll detect orientation by comparing a.x and s.x
+                const isLeft = (a.x < f.x);
+                let vertX;
+                if (isLeft) {
+                    // put vertical a.x + half width of box? Use a.rect.right - wrapRect.left - 6 px
+                    vertX = (a.rect.right - wrapRect.left) + 12;
+                } else {
+                    vertX = (a.rect.left - wrapRect.left) - 12;
+                }
+
+                // vertical segment from top center y to bottom center y at vertX
+                const y1 = a.y;
+                const y2 = b.y;
+
+                // draw vertical line (M -> L)
+                const vertPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+                vertPath.setAttribute('d', M ${vertX} ${y1} L ${vertX} ${y2});
+                vertPath.setAttribute('fill','none');
+                vertPath.setAttribute('stroke','url(#goldGrad)');
+                vertPath.setAttribute('stroke-width','6');
+                vertPath.setAttribute('stroke-linecap','round');
+                vertPath.setAttribute('stroke-linejoin','round');
+                vertPath.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
+                svg.appendChild(vertPath);
+
+                // midpoint of vertical
+                const midY = (y1 + y2)/2;
+
+                // horizontal from (vertX, midY) to semi center x (s.x)
+                const horiz1 = document.createElementNS('http://www.w3.org/2000/svg','path');
+                horiz1.setAttribute('d', M ${vertX} ${midY} L ${s.x} ${midY});
+                horiz1.setAttribute('fill','none');
+                horiz1.setAttribute('stroke','url(#goldGrad)');
+                horiz1.setAttribute('stroke-width','6');
+                horiz1.setAttribute('stroke-linecap','round');
+                horiz1.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
+                svg.appendChild(horiz1);
+
+                // small vertical connecting from (s.x, midY) to s.y
+                const vert2 = document.createElementNS('http://www.w3.org/2000/svg','path');
+                vert2.setAttribute('d', M ${s.x} ${midY} L ${s.x} ${s.y});
+                vert2.setAttribute('fill','none');
+                vert2.setAttribute('stroke','url(#goldGrad)');
+                vert2.setAttribute('stroke-width','6');
+                vert2.setAttribute('stroke-linecap','round');
+                vert2.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
+                svg.appendChild(vert2);
+
+                // horizontal from semi center to final center (connect to final)
+                const horiz2 = document.createElementNS('http://www.w3.org/2000/svg','path');
+                horiz2.setAttribute('d', M ${s.x} ${s.y} L ${f.x} ${s.y});
+                horiz2.setAttribute('fill','none');
+                horiz2.setAttribute('stroke','url(#goldGrad)');
+                horiz2.setAttribute('stroke-width','6');
+                horiz2.setAttribute('stroke-linecap','round');
+                horiz2.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
+                svg.appendChild(horiz2);
+            }
+
+            // draw left side (q0->q1 -> s0 -> final)
+            drawSide(ids.q0, ids.q1, ids.s0);
+            // draw right side (q2->q3 -> s1 -> final)
+            drawSide(ids.q2, ids.q3, ids.s1);
+        }
+
+        function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); } }
+        const doDraw = debounce(()=>{ try { drawLines(); } catch(e) { console.warn(e); } }, 90);
+
+        document.addEventListener('DOMContentLoaded', doDraw);
+        window.addEventListener('load', doDraw);
+        window.addEventListener('resize', doDraw);
+        window.addEventListener('orientationchange', doDraw);
+
+        // redrawing a few times to account for image loading
+        setTimeout(doDraw, 250);
+        setTimeout(doDraw, 800);
+        setTimeout(doDraw, 1400);
+    })();
+</script>

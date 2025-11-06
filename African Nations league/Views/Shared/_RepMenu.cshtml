@@ -1,21 +1,268 @@
-﻿@* Partial for representative navigation *@
-<nav class="rep-menu">
-    <ul>
-        <li><a asp-controller="Representative" asp-action="Index">Dashboard</a></li>
-        <li><a asp-controller="Representative" asp-action="Profile">Profile</a></li>
-        <li><a asp-controller="Representative" asp-action="Teams" asp-route-id="">Teams</a></li>
-        <li><a asp-controller="Representative" asp-action="Fixtures">Fixtures</a></li>
-        <li><a asp-controller="Representative" asp-action="TopScorers">Top Scorers </a></li>
-        <li>
-            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-link">Logout</button>
-            </form>
-        </li>
-    </ul>
+﻿@* Views/Shared/_RepNav.cshtml *@
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+<nav class="rep-sidebar" aria-label="Representative navigation">
+    <div class="rep-brand">
+        <a asp-controller="Home" asp-action="Index" class="brand-link">
+            <img src="/images/Confederation_of_African_Football_logo (1).svg" alt="African Nations League" class="brand-logo" />
+            <div class="brand-text">
+                <div class="league-name">African Nations League</div>
+                <small class="league-sub">Representative</small>
+            </div>
+        </a>
+
+        <button class="rep-toggle d-md-none" aria-expanded="false" aria-controls="repNavList" title="Toggle menu">
+            <span class="hamburger"></span>
+        </button>
+    </div>
+
+    <div id="repNavList" class="rep-nav-wrap">
+        <ul class="rep-nav list-unstyled">
+            <li class="rep-item">
+                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"
+                   asp-controller="Representative" asp-action="Index">
+                    Dashboard
+                </a>
+            </li>
+
+            <li class="rep-item">
+                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")"
+                   asp-controller="Representative" asp-action="Profile">
+                    Profile
+                </a>
+            </li>
+
+            <li class="rep-item">
+                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "Teams" ? "active" : "")"
+                   asp-controller="Representative" asp-action="Teams" asp-route-id="">
+                    Teams
+                </a>
+            </li>
+
+            <li class="rep-item">
+                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "Fixtures" ? "active" : "")"
+                   asp-controller="Representative" asp-action="Fixtures">
+                    Fixtures
+                </a>
+            </li>
+            <li class="rep-item">
+                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "Bracket" ? "active" : "")"
+                   asp-controller="Representative" asp-action="Bracket">
+                    Tournament Bracket
+                </a>
+            </li>
+            <li class="rep-item">
+                <a class="rep-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Representative" && ViewContext.RouteData.Values["action"]?.ToString() == "TopScorers" ? "active" : "")"
+                   asp-controller="Representative" asp-action="TopScorers">
+                    Top Scorers
+                </a>
+            </li>
+
+            <li class="rep-item logout-item">
+                <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="rep-link btn-plain">Logout</button>
+                </form>
+            </li>
+        </ul>
+
+        <div class="rep-footer">
+            <div class="small muted">© <span id="repYear">@DateTime.Now.Year</span> African Nations League</div>
+            <div class="small muted">All rights reserved</div>
+        </div>
+    </div>
 </nav>
 
 <style>
-    .rep-menu ul { list-style: none; padding: 0; }
-    .rep-menu li { margin: .4rem 0; }
+    /* Representative sidebar partial styles - self contained */
+    .rep-sidebar {
+        --sidebar-bg: linear-gradient(180deg, #0f5a3f 0%, #083f2b 100%);
+        --accent: #f3c24b;
+        --text-light: #ffffff;
+        --muted: rgba(255,255,255,0.85);
+        width: 260px;
+        min-width: 220px;
+        max-width: 320px;
+        background: var(--sidebar-bg);
+        color: var(--text-light);
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: 0 8px 24px rgba(2,10,6,0.25);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    /* brand area */
+    .rep-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+    }
+
+    .brand-link {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .brand-logo {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.04);
+        padding: 6px;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+    }
+
+    .brand-text .league-name {
+        font-weight: 800;
+        font-size: 0.96rem;
+        letter-spacing: 0.2px;
+    }
+
+    .brand-text .league-sub {
+        display: block;
+        color: rgba(255,255,255,0.75);
+        font-size: 0.78rem;
+        margin-top: 2px;
+    }
+
+    /* toggle (mobile) */
+    .rep-toggle {
+        position: absolute;
+        right: 6px;
+        top: 6px;
+        background: transparent;
+        border: none;
+        display: none;
+        padding: 8px;
+    }
+
+        .rep-toggle .hamburger {
+            width: 20px;
+            height: 2px;
+            background: rgba(255,255,255,0.9);
+            display: block;
+            position: relative;
+        }
+
+            .rep-toggle .hamburger::before,
+            .rep-toggle .hamburger::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: rgba(255,255,255,0.9);
+            }
+
+            .rep-toggle .hamburger::before {
+                top: -6px;
+            }
+
+            .rep-toggle .hamburger::after {
+                top: 6px;
+            }
+
+    /* nav list */
+    .rep-nav {
+        margin: 6px 0 0 0;
+        padding: 0;
+    }
+
+    .rep-item {
+        margin: 6px 0;
+    }
+
+    .rep-link {
+        display: block;
+        padding: 10px 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text-light);
+        font-weight: 700;
+        transition: all 160ms ease;
+    }
+
+        .rep-link:hover,
+        .rep-link:focus {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-light);
+        }
+
+        /* active link */
+        .rep-link.active {
+            background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 6px 16px rgba(0,0,0,0.15);
+            color: var(--accent);
+        }
+
+    /* plain button look for logout (keeps same visuals) */
+    .btn-plain {
+        background: transparent;
+        border: none;
+        color: inherit;
+        padding: 10px 12px;
+        width: 100%;
+        text-align: left;
+        font-weight: 700;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    /* footer */
+    .rep-footer {
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.04);
+        color: var(--muted);
+        font-size: 0.82rem;
+        text-align: center;
+    }
+
+    /* responsive behaviour: collapse on small screens */
+    @@media (max-width: 991.98px) {
+        .rep-sidebar
+
+    {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    .rep-toggle {
+        display: block;
+    }
+
+    .rep-nav-wrap {
+        display: none;
+    }
+
+        .rep-nav-wrap.open {
+            display: block;
+        }
+
+    }
 </style>
+
+<script>
+    // simple toggle for mobile
+    (function(){
+      var toggle = document.querySelector('.rep-toggle');
+      var wrap = document.getElementById('repNavList');
+      if (!toggle || !wrap) return;
+
+      toggle.addEventListener('click', function(){
+        var isOpen = wrap.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    })();
+</script>

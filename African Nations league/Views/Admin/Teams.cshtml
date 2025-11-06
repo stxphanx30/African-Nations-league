@@ -1,54 +1,343 @@
 ﻿@model List<African_Nations_league.Models.TeamViewModel>
 @{
     ViewData["Title"] = "Teams";
+    Layout = null;
 }
-<div class="row">
-    <div class="col-3">@await Html.PartialAsync("_AdminMenu")</div>
-    <div class="col-9">
-        <h2>All Teams</h2>
 
-        @if (Model == null || Model.Count == 0)
-        {
-            <p>Aucune équipe trouvée.</p>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --caf-green: #126035;
+        --caf-gold: #f1c232;
+        --caf-red: #c8102e;
+        --muted: #6c757d;
+        --page-bg: #fbfcfb;
+        --card-bg: #ffffff;
+        --shadow: 0 6px 18px rgba(15,23,42,0.06);
+        --radius: 10px;
+    }
+
+    body {
+        background: var(--page-bg);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #222;
+    }
+
+    .teams-layout {
+        max-width: 1200px;
+        margin: 18px auto;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
+    .teams-container {
+        padding: 0;
+    }
+
+    h2.page-title {
+        font-weight: 700;
+        color: var(--caf-green);
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .subtitle {
+        color: var(--muted);
+        margin-bottom: 16px;
+    }
+
+    /* Toolbar */
+    .teams-toolbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+        .teams-toolbar .search {
+            flex: 1 1 260px;
+            min-width: 160px;
         }
-        else
-        {
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Flag</th>
-                        <th>Team</th>
-                        <th>Code</th>
-                        <th>Rating</th>
-                        <th>Players</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var t in Model)
-                    {
+
+    /* Table style */
+    .teams-table-wrap {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 8px;
+        box-shadow: var(--shadow);
+        border: 2px solid rgba(200, 16, 46, 0.06);
+    }
+
+    table.teams-table thead th {
+        background: linear-gradient(90deg, rgba(18, 96, 53, 0.06), rgba(18, 96, 53, 0.02));
+        color: var(--caf-green);
+        border-top: 0;
+        font-weight: 700;
+    }
+
+    table.teams-table tbody tr {
+        transition: background 0.12s ease, transform 0.08s ease;
+    }
+
+        table.teams-table tbody tr:hover {
+            background: rgba(18, 96, 53, 0.03);
+            transform: translateY(-1px);
+        }
+
+    .team-flag {
+        width: 64px;
+        height: 42px;
+        object-fit: cover;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .rating-badge {
+        display: inline-block;
+        background: linear-gradient(180deg, #fff 0%, rgba(241, 194, 50, 0.06) 100%);
+        color: #111;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        min-width: 58px;
+        text-align: center;
+    }
+
+    .btn-details {
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: .9rem;
+    }
+
+    .team-morocco {
+        background: linear-gradient(90deg, rgba(200, 16, 46, 0.03), rgba(18, 96, 53, 0.02));
+        border-left: 4px solid var(--caf-gold);
+    }
+
+    .players-small {
+        color: var(--muted);
+        font-size: .95rem;
+    }
+
+    /* Mobile cards */
+    .teams-card-grid {
+        display: none;
+        gap: 16px;
+    }
+
+    .team-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        box-shadow: var(--shadow);
+        border: 2px solid rgba(200, 16, 46, 0.06);
+    }
+
+        .team-card .left {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            min-width: 140px;
+        }
+
+            .team-card .left .flag {
+                width: 84px;
+                height: 54px;
+                border-radius: 8px;
+                object-fit: cover;
+            }
+
+        .team-card .meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+            .team-card .meta .name {
+                font-weight: 700;
+                color: var(--caf-green);
+            }
+
+        .team-card .right {
+            margin-left: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+    .empty-state {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.9));
+        padding: 24px;
+        border-radius: 10px;
+        border: 1px dashed rgba(18, 96, 53, 0.12);
+        color: var(--muted);
+        text-align: center;
+    }
+
+    /* Responsive */
+    @@media (max-width: 767.98px) {
+        .teams-table-wrap {
+            display: none;
+        }
+
+        .teams-card-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .teams-container {
+            padding: 12px;
+        }
+
+        .team-card .left .flag {
+            width: 72px;
+            height: 48px;
+        }
+
+        .teams-layout {
+            grid-template-columns: 1fr;
+            padding: 12px;
+        }
+    }
+</style>
+
+<div class="teams-layout">
+    <!-- LEFT: Representative menu partial -->
+    <aside>
+        @await Html.PartialAsync("_AdminMenu")
+    </aside>
+
+    <!-- RIGHT: main teams content -->
+    <div class="teams-container">
+        <h2 class="page-title">Toutes les équipes <small class="badge-pill" style="background:var(--caf-gold); color:#111; margin-left:8px;">@(Model?.Count ?? 0)</small></h2>
+        <p class="subtitle">Parcourez les équipes, leurs notes et effectifs. Cliquez sur "Détails" pour plus d’informations.</p>
+
+        <div class="teams-toolbar mb-3">
+            <input class="form-control search" id="teamSearch" placeholder="Rechercher une équipe (ex: Maroc, Égypte...)" />
+            <div class="filters">
+                <a href="#" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('teamSearch').value=''; filterTeams(); return false;">Effacer</a>
+                <a href="@Url.Action("Teams", "Admin")" class="btn btn-sm" style="background:var(--caf-green); color:#fff; border-radius:8px;">Rafraîchir</a>
+            </div>
+        </div>
+
+        <!-- TABLE DESKTOP -->
+        <div class="teams-table-wrap">
+            @if (Model == null || Model.Count == 0)
+            {
+                <div class="empty-state">Aucune équipe trouvée.</div>
+            }
+            else
+            {
+                <table class="table table-borderless teams-table">
+                    <thead>
                         <tr>
-                            <td>
-                                @if (!string.IsNullOrEmpty(t.TeamFlag))
-                                {
-                                    <img src="@t.TeamFlag" alt="@t.TeamName" width="50" height="35" />
-                                }
-                            </td>
-                            <td>@t.TeamName</td>
-                            <td>@t.TeamRating.ToString("0.0")</td>
-                            <td>@(t.Squad?.Count ?? 0)</td>
-                            <td>
-                                <a asp-controller="Admin"
-                                   asp-action="TeamDetails"
-                                   asp-route-id="@t.TeamId"
-                                   class="btn btn-sm btn-outline-primary">
-                                    Détails
-                                </a>
-                            </td>
+                            <th>Flag</th>
+                            <th>Team</th>
+                            <th>Rating</th>
+                            <th>Players</th>
+                            <th></th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        }
+                    </thead>
+                    <tbody id="teamsTbody">
+                        @foreach (var t in Model)
+                        {
+                            var isMor = string.Equals(t.TeamName, "Morocco", System.StringComparison.OrdinalIgnoreCase);
+                            <tr class="@(isMor ? "team-morocco" : "")" data-name="@t.TeamName.ToLower()">
+                                <td>
+                                    @if (!string.IsNullOrEmpty(t.TeamFlag))
+                                    {
+                                        <img src="@t.TeamFlag" alt="@t.TeamName" class="team-flag" />
+                                    }
+                                    else
+                                    {
+                                        <div style="width:64px;height:42px;border-radius:6px;background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;">N/A</div>
+                                    }
+                                </td>
+                                <td style="vertical-align:middle;">
+                                    <span style="font-weight:700;color:var(--caf-green);">@t.TeamName</span>
+                                </td>
+                                <td style="vertical-align:middle;">
+                                    <span class="rating-badge">@t.TeamRating.ToString("0.0")</span>
+                                </td>
+                                <td style="vertical-align:middle;">
+                                    <span class="players-small">@(t.Squad?.Count ?? 0) players</span>
+                                </td>
+                                <td style="vertical-align:middle;">
+                                    <a asp-controller="Admin"
+                                       asp-action="TeamDetails"
+                                       asp-route-id="@t.TeamId"
+                                       class="btn btn-sm btn-outline-primary btn-details">
+                                        Détails
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <!-- CARDS MOBILE -->
+        <div class="teams-card-grid mt-3" id="teamsCards">
+            @if (Model != null && Model.Count > 0)
+            {
+                foreach (var t in Model)
+                {
+                    var isMor = string.Equals(t.TeamName, "Morocco", System.StringComparison.OrdinalIgnoreCase);
+                    <div class="team-card @(isMor ? "team-morocco" : "")" data-name="@t.TeamName.ToLower()">
+                        <div class="left">
+                            @if (!string.IsNullOrEmpty(t.TeamFlag))
+                            {
+                                <img src="@t.TeamFlag" alt="@t.TeamName" class="flag" />
+                            }
+                            else
+                            {
+                                <div class="flag" style="background:#eee;display:flex;align-items:center;justify-content:center;color:#aaa;">N/A</div>
+                            }
+                            <div class="meta">
+                                <span class="name">@t.TeamName</span>
+                            </div>
+                        </div>
+                        <div class="right">
+                            <span class="rating-badge">@t.TeamRating.ToString("0.0")</span>
+                            <small class="players-small">@(t.Squad?.Count ?? 0) players</small>
+                            <a asp-controller="Representative" asp-action="TeamDetails" asp-route-id="@t.TeamId" class="btn btn-sm btn-outline-primary mt-1">Détails</a>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
     </div>
 </div>
+
+<script>
+    // Simple search filter
+    function filterTeams() {
+        const q = (document.getElementById('teamSearch').value || '').trim().toLowerCase();
+
+        document.querySelectorAll('#teamsTbody tr').forEach(tr => {
+            const name = tr.getAttribute('data-name') || '';
+            tr.style.display = !q || name.includes(q) ? '' : 'none';
+        });
+
+        document.querySelectorAll('#teamsCards .team-card').forEach(card => {
+            const name = card.getAttribute('data-name') || '';
+            card.style.display = !q || name.includes(q) ? '' : 'none';
+        });
+    }
+
+    document.getElementById('teamSearch').addEventListener('input', filterTeams);
+</script>

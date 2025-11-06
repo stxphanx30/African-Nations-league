@@ -18,35 +18,45 @@
                 <img src="~/images/Confederation_of_African_Football_logo (1).svg" alt="African Nations League" width="60" height="60" />
                 African Nations league
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                    aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-end">
-                <!-- align right -->
-                <ul class="navbar-nav">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-end align-items-center">
+                    <!-- align right -->
+                    <ul class="navbar-nav me-3">
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Home"
-                                   && ViewContext.RouteData.Values["action"].ToString() == "Index" ? "active" : "")"
+                                                  && ViewContext.RouteData.Values["action"].ToString() == "Index" ? "active" : "")"
                                asp-area="" asp-controller="Loading" asp-action="Loading2">Home</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"
-                                   && ViewContext.RouteData.Values["action"].ToString() == "Teams" ? "active" : "")"
+                                                  && ViewContext.RouteData.Values["action"].ToString() == "Teams" ? "active" : "")"
                                asp-area="" asp-controller="Teams" asp-action="Teams">Teams</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"
-                                                                                                 && ViewContext.RouteData.Values["action"].ToString() == "Leaderboard" ? "active" : "")"
+                                                  && ViewContext.RouteData.Values["action"].ToString() == "Leaderboard" ? "active" : "")"
                                asp-area="" asp-controller="Teams" asp-action="Leaderboard">Top Scorers</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Teams"
-                                                                                                 && ViewContext.RouteData.Values["action"].ToString() == "Bracket" ? "active" : "")"
+                                                  && ViewContext.RouteData.Values["action"].ToString() == "Bracket" ? "active" : "")"
                                asp-area="" asp-controller="Teams" asp-action="Bracket">Bracket</a>
                         </li>
-                </ul>
-            </div>
+                    </ul>
+
+                    <!-- ✅ LOGIN BUTTON -->
+                    <div class="d-flex align-items-center">
+                        <a href="@Url.Action("Login", "Auth")" class="btn btn-sm btn-success fw-bold me-2" style="background-color:#126035;border:none;">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                        @* Optional: Uncomment the line below if you want a Sign up button next to Login *@
+                        @* <a href="@Url.Action("SignUp", "Auth")" class="btn btn-sm btn-outline-success fw-bold">Sign up</a> *@
+                    </div>
+                </div>
         </div>
     </nav>
 

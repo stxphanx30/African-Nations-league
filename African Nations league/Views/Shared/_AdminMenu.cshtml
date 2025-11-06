@@ -1,32 +1,389 @@
-﻿@* Partial view pour le menu admin *@
-<nav class="admin-menu">
-    <ul>
-        <li><a asp-controller="Admin" asp-action="Index">Dashboard</a></li>
-        <li><a asp-controller="Admin" asp-action="Teams">Équipes</a></li>
-        <li><a asp-controller="Admin" asp-action="Users">Users</a></li>
-        <li><a asp-controller="Admin" asp-action="GenerateFixtures">Fixtures</a></li>
-        <li><a asp-controller="Admin" asp-action="Bracket">Brackets</a></li>
-        <li><a asp-controller="Admin" asp-action="TopScorers">Leaderboard</a></li>
-        <li>
-            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-danger btn-sm">Logout</button>
-            </form>
-        </li>
-    </ul>
-</nav>
+﻿@* _AdminMenu.cshtml - Admin left navigation partial (responsive drop-down on small screens) *@
+@{
+    // no model - partial only
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var menuId = "adminMenuNav";
+}
+
+<aside class="admin-menu-wrapper" role="navigation" aria-label="Admin menu" id="adminMenuWrapper">
+
+    <!-- Small-screen top bar: title + hamburger (always visible on small screens) -->
+    <div class="admin-mobile-bar" id="adminMobileBar">
+        <div class="mobile-left">
+            <img src="~/images/Confederation_of_African_Football_logo (1).svg" alt="ANL" class="admin-logo-sm" />
+            <div class="mobile-title">
+                <div class="title-sm">African Nations League</div>
+                <div class="subtitle-sm">Admin</div>
+            </div>
+        </div>
+
+        <div class="mobile-right">
+            <button id="adminMenuToggle" class="admin-hamburger" aria-expanded="false" aria-controls="@menuId" title="Toggle menu">
+                <span class="hamburger-line" aria-hidden="true"></span>
+                <span class="visually-hidden">Toggle admin menu</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Desktop brand shown on larger screens -->
+    <div class="admin-brand desktop-only" aria-hidden="true">
+        <img src="~/images/Confederation_of_African_Football_logo (1).svg" alt="African Nations League" class="admin-logo" />
+        <div class="brand-text">
+            <div class="title">African Nations League</div>
+            <div class="subtitle">Admin</div>
+        </div>
+    </div>
+
+    <!-- Collapsible nav (behaves like left nav on desktop, drop-down on mobile) -->
+    <nav class="admin-menu" id="@menuId" aria-label="Admin links">
+        <ul>
+            <li class="nav-item @(currentController == "Admin" && currentAction == "Index" ? "active" : "")">
+                <a asp-controller="Admin" asp-action="Index">Dashboard</a>
+            </li>
+
+            <li class="nav-item @(currentController == "Admin" && currentAction == "Teams" ? "active" : "")">
+                <a asp-controller="Admin" asp-action="Teams">Teams</a>
+            </li>
+
+            <li class="nav-item @(currentController == "Admin" && currentAction == "Users" ? "active" : "")">
+                <a asp-controller="Admin" asp-action="Users">Users</a>
+            </li>
+
+            <li class="nav-item @(currentController == "Admin" && currentAction == "GenerateFixtures" ? "active" : "")">
+                <a asp-controller="Admin" asp-action="GenerateFixtures">Generate Fixtures</a>
+            </li>
+
+            <li class="nav-item @(currentController == "Admin" && currentAction == "Bracket" ? "active" : "")">
+                <a asp-controller="Admin" asp-action="Bracket">Brackets</a>
+            </li>
+
+            <li class="nav-item @(currentController == "Admin" && currentAction == "TopScorers" ? "active" : "")">
+                <a asp-controller="Admin" asp-action="TopScorers">Leaderboard</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="admin-logout">
+        <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline" aria-label="Logout form">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+    </div>
+
+    <div class="admin-footer">
+        <small>© @(DateTime.UtcNow.Year) African Nations League</small>
+    </div>
+</aside>
 
 <style>
-    .admin-menu ul {
-        list-style-type: none;
-        padding: 0;
+    /* Base */
+    .admin-menu-wrapper {
+        background: linear-gradient(180deg, #ffffff, #fbfbfb);
+        border-radius: 10px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: 100%;
+        box-shadow: 0 10px 28px rgba(2,10,6,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
+        min-height: 220px;
     }
 
-    .admin-menu li {
-        margin: 0.5rem 0;
+    /* Desktop brand */
+    .admin-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
     }
 
-    .admin-menu form {
-        display: inline; /* pour que le bouton soit sur la même ligne si besoin */
+    .admin-logo {
+        width: 52px;
+        height: 52px;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #fff;
+        padding: 6px;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+    }
+
+    .brand-text .title {
+        font-weight: 800;
+        font-size: 0.98rem;
+        color: #126035;
+    }
+
+    .brand-text .subtitle {
+        font-size: 0.78rem;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+
+    /* Admin menu list */
+    .admin-menu {
+        margin-top: 6px;
+        flex: 1 1 auto;
+        overflow: auto;
+        padding-right: 4px;
+    }
+
+        .admin-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .admin-menu .nav-item a {
+            display: block;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #24323a;
+            font-weight: 700;
+            transition: all .12s ease;
+            border-left: 4px solid transparent;
+        }
+
+            .admin-menu .nav-item a:hover {
+                background: rgba(18,96,53,0.04);
+                color: #126035;
+                transform: translateX(4px);
+            }
+
+        .admin-menu .nav-item.active a {
+            background: linear-gradient(90deg, rgba(18,96,53,0.08), rgba(241,194,50,0.02));
+            color: #0b2b1f;
+            border-left-color: #126035;
+            box-shadow: 0 6px 18px rgba(18,96,53,0.04);
+        }
+
+    .admin-logout {
+        border-top: 1px solid rgba(0,0,0,0.03);
+        padding-top: 8px;
+    }
+
+    .btn-logout {
+        display: block;
+        width: 100%;
+        padding: 8px 10px;
+        background: linear-gradient(90deg,#c8102e,#a20b20);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(200,16,46,0.08);
+    }
+
+        .btn-logout:hover {
+            transform: translateY(-1px);
+        }
+
+    .admin-footer {
+        text-align: center;
+        font-size: 0.8rem;
+        color: #6c757d;
+        padding-top: 4px;
+    }
+
+    /* MOBILE BAR (small screens) */
+    .admin-mobile-bar {
+        display: none; /* visible on small screens only */
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 4px;
+    }
+
+        .admin-mobile-bar .mobile-left {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+    .admin-logo-sm {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        border-radius: 6px;
+        background: #fff;
+        padding: 4px;
+    }
+
+    .mobile-title .title-sm {
+        font-weight: 800;
+        color: #126035;
+        font-size: 0.95rem;
+    }
+
+    .mobile-title .subtitle-sm {
+        font-size: 0.78rem;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+
+    .admin-hamburger {
+        width: 44px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(0,0,0,0.04);
+        background: #fff;
+        cursor: pointer;
+    }
+
+    .hamburger-line {
+        display: block;
+        width: 20px;
+        height: 2px;
+        background: #24323a;
+        position: relative;
+    }
+
+        .hamburger-line::before, .hamburger-line::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 20px;
+            height: 2px;
+            background: #24323a;
+        }
+
+        .hamburger-line::before {
+            top: -6px;
+        }
+
+        .hamburger-line::after {
+            top: 6px;
+        }
+
+    .visually-hidden {
+        position: absolute !important;
+        height: 1px;
+        width: 1px;
+        overflow: hidden;
+        clip: rect(1px,1px,1px,1px);
+        white-space: nowrap;
+    }
+
+    /* COLLAPSIBLE behaviour on small screens:
+           - by default nav is collapsed (height:0, overflow:hidden)
+           - when wrapper has .expanded -> nav gets max-height and padding
+           - we animate max-height for smooth drop-down
+        */
+    # @menuId {
+        transition: max-height 260ms ease, padding 260ms ease;
+    }
+
+    /* SMALL SCREEN RULES */
+    @@media (max-width: 768px) {
+        .desktop-only {
+            display: none;
+        }
+
+        .admin-mobile-bar {
+            display: flex;
+        }
+
+        .admin-menu-wrapper {
+            padding: 10px;
+            border-radius: 8px;
+        }
+        /* collapsed (default): hide nav */
+        .admin-menu {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            overflow: hidden;
+        }
+        /* when expanded: allow nav to show (big enough max-height for content) */
+        .admin-menu-wrapper.expanded .admin-menu {
+            max-height: 1000px; /* high enough to show all items */
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        /* adjust logout & footer spacing */
+        .admin-logout {
+            margin-top: 8px;
+        }
+
+        .admin-footer {
+            margin-top: 6px;
+        }
+    }
+
+    /* LARGE SCREEN: ensure nav visible and layout same as before */
+    @@media (min-width: 769px) {
+        .admin-menu {
+            max-height: none !important;
+            overflow: auto;
+            padding-top: 6px;
+            padding-bottom: 6px;
+        }
+
+        .admin-mobile-bar {
+            display: none !important;
+        }
     }
 </style>
+
+<script>
+    (function(){
+        const wrapper = document.getElementById('adminMenuWrapper');
+        const toggle = document.getElementById('adminMenuToggle');
+        const nav = document.getElementById('@menuId');
+
+        if (!wrapper || !toggle || !nav) return;
+
+        // Start collapsed on small screens
+        function isSmall(){ return window.matchMedia('(max-width: 768px)').matches; }
+        if (isSmall()) wrapper.classList.remove('expanded');
+
+        // Toggle handler: expand/collapse nav vertically
+        toggle.addEventListener('click', function(){
+            const currentlyExpanded = toggle.getAttribute('aria-expanded') === 'true';
+            const willExpand = !currentlyExpanded;
+            toggle.setAttribute('aria-expanded', willExpand.toString());
+            if (willExpand) wrapper.classList.add('expanded'); else wrapper.classList.remove('expanded');
+
+            // Move focus to first link when opening for keyboard users
+            if (willExpand) {
+                const firstLink = nav.querySelector('a');
+                if (firstLink) firstLink.focus();
+            } else {
+                toggle.focus();
+            }
+        });
+
+        // Keep state consistent on resize: if going to large screen, ensure expanded
+        window.addEventListener('resize', function(){
+            if (!isSmall()) {
+                wrapper.classList.add('expanded'); // full menu visible on large screens
+                toggle.setAttribute('aria-expanded', 'true');
+            } else {
+                // collapse by default on small screens
+                if (!toggle.getAttribute('aria-expanded') || toggle.getAttribute('aria-expanded') === 'false') {
+                    wrapper.classList.remove('expanded');
+                }
+            }
+        });
+
+        // initialize expanded state based on current viewport
+        if (!isSmall()) {
+            wrapper.classList.add('expanded');
+            toggle.setAttribute('aria-expanded', 'true');
+        } else {
+            wrapper.classList.remove('expanded');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+    })();
+</script>
