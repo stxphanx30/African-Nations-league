@@ -42,6 +42,8 @@ builder.Services.AddHttpClient<SportMonksService>();
 
 // Seeder (scoped because it peut appeler des services scoped)
 builder.Services.AddScoped<DbSeeder>();
+builder.Services.AddTransient<IEmailService, SendGridEmailService>();
+builder.Services.AddTransient<NotificationService>();
 
 // ----------------------- Build app -----------------------
 var app = builder.Build();

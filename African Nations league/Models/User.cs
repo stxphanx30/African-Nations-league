@@ -23,6 +23,8 @@ namespace African_Nations_league.Models
         public string ManagerName { get; set; }
         public double TeamRating { get; set; }  // <- new
         public List<Players> Squad { get; set; } = new List<Players>();
+        public bool NotifyByEmail { get; set; } = true;
+
 
     }
 }

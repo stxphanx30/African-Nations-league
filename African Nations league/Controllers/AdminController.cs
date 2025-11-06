@@ -3,6 +3,7 @@ using African_Nations_league.Data;
 using African_Nations_league.Models;
 using African_Nations_league.Services;
 using Microsoft.AspNetCore.Mvc;
+using MiNET;
 using System.Numerics;
 using System.Threading.Tasks;
 
@@ -14,11 +15,14 @@ namespace African_Nations_league.Controllers
         private readonly MongoDbService _mongo;
         private readonly UserService _userService;
         private readonly Random _rnd = new Random();
-        public AdminController(DbSeeder seeder, MongoDbService mongo, UserService userService)
+        private readonly NotificationService _notificationService;
+
+        public AdminController(DbSeeder seeder, MongoDbService mongo, UserService userService, NotificationService notificationService)
         {
             _seeder = seeder;
             _mongo = mongo;
             _userService = userService;
+            _notificationService = notificationService;
         }
 
         // Vérifie si current user est admin via session
@@ -205,6 +209,8 @@ namespace African_Nations_league.Controllers
             TempData["SeedMessage"] = "Seed executed.";
             return RedirectToAction(nameof(Index));
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SimulateMatch(string fixtureId)
         {
             if (!IsAdmin()) return RedirectToAction("AccessDenied");
@@ -213,37 +219,45 @@ namespace African_Nations_league.Controllers
                 return NotFound("Fixture ID not provided");
 
             var fixture = await _mongo.GetFixtureByIdAsync(fixtureId);
+            if (fixture == null) return NotFound("Fixture not found");
 
-
-            fixture.Events.Clear(); // reset events
+            // reset events / scores
+            fixture.Events = fixture.Events ?? new List<GoalEvent>();
+            fixture.Events.Clear();
             fixture.ScoreA = 0;
             fixture.ScoreB = 0;
             fixture.Status = "Playing";
+            
 
             var random = new Random();
 
-            // Récupérer les équipes
+            // Récupérer les équipes (peuvent venir de Teams ou Users merged)
             var teamA = await _mongo.GetTeamByIdOrCodeAsync(fixture.TeamAId);
             var teamB = await _mongo.GetTeamByIdOrCodeAsync(fixture.TeamBId);
 
             if (teamA == null || teamB == null)
                 return NotFound("One of the teams not found");
 
+            // Safeguard: ensure players lists exist
+            teamA.Players = teamA.Players ?? new List<Players>();
+            teamB.Players = teamB.Players ?? new List<Players>();
+
             // Probabilité de marquer basée sur le rating
-            double probA = teamA.TeamRating / (teamA.TeamRating + teamB.TeamRating);
-            double probB = teamB.TeamRating / (teamA.TeamRating + teamB.TeamRating);
+            double totalRating = (teamA.TeamRating + teamB.TeamRating);
+            double probA = totalRating > 0 ? teamA.TeamRating / totalRating : 0.5;
+            double probB = totalRating > 0 ? teamB.TeamRating / totalRating : 0.5;
 
             // Simulation des 90 minutes
             for (int minute = 1; minute <= 90; minute++)
             {
-                if (random.NextDouble() < probA * 0.02)
+                if (teamA.Players.Count > 0 && random.NextDouble() < probA * 0.02)
                 {
                     var scorer = teamA.Players[random.Next(teamA.Players.Count)];
                     fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamA.TeamName });
                     fixture.ScoreA++;
                 }
 
-                if (random.NextDouble() < probB * 0.02)
+                if (teamB.Players.Count > 0 && random.NextDouble() < probB * 0.02)
                 {
                     var scorer = teamB.Players[random.Next(teamB.Players.Count)];
                     fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamB.TeamName });
@@ -256,14 +270,14 @@ namespace African_Nations_league.Controllers
             {
                 for (int minute = 91; minute <= 120; minute++)
                 {
-                    if (random.NextDouble() < probA * 0.01)
+                    if (teamA.Players.Count > 0 && random.NextDouble() < probA * 0.01)
                     {
                         var scorer = teamA.Players[random.Next(teamA.Players.Count)];
                         fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamA.TeamName });
                         fixture.ScoreA++;
                     }
 
-                    if (random.NextDouble() < probB * 0.01)
+                    if (teamB.Players.Count > 0 && random.NextDouble() < probB * 0.01)
                     {
                         var scorer = teamB.Players[random.Next(teamB.Players.Count)];
                         fixture.Events.Add(new GoalEvent { PlayerName = scorer.PlayerName, Minute = minute, TeamName = teamB.TeamName });
@@ -300,15 +314,27 @@ namespace African_Nations_league.Controllers
             }
 
             fixture.Status = "Finished";
+            
 
-            // ✅ Mettre à jour la fixture dans la DB
+            // Mettre à jour la fixture dans la DB
             await _mongo.UpdateFixtureAsync(fixture);
+
+            // NOTIFICATION : inform users whose team is TeamA or TeamB
+            try
+            {
+                // await pour que l'email parte (si tu veux non-bloquant, retire await et log)
+                await _notificationService.NotifyUsersAboutMatchResult(fixture);
+            }
+            catch (Exception ex)
+            {
+                // ne fais pas planter la route si l'envoi échoue
+                // si tu as un logger : _logger.LogError(ex, "NotifyUsers failed for fixture {FixtureId}", fixtureId);
+            }
 
             TempData["Success"] = $"Match {teamA.TeamName} vs {teamB.TeamName} simulated successfully!";
 
             return RedirectToAction("GenerateFixtures");
         }
-
         // Controller (AdminController or équivalent)
         public async Task<IActionResult> GenerateFixtures()
         {
